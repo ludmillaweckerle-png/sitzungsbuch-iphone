@@ -1,0 +1,1494 @@
+<!doctype html><html><head><meta charset=utf8><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Sitzungsbuch"><meta name="theme-color" content="#55388A"><link rel="manifest" href="manifest.webmanifest"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Sitzungsbuch</title>
+
+<style>
+/* Layout: one narrow column like a pocket notebook. Client list first, then one client file
+   with five fixed tabs at thumb height. Forms take the whole screen so the keyboard never covers them. */
+:root {
+  --bg: #F5F4F8;
+  --surface: #FFFFFF;
+  --sunken: #E9E6F0;
+  --ink: #1B1823;
+  --ink-2: #5C5868;
+  --line: #D9D5E2;
+  --accent: #55388A;
+  --accent-ink: #FFFFFF;
+  --mark: #E3B21C;
+  --warn: #9A4A08;
+  --warn-bg: #FBEBD9;
+  --ok: #2A6A4B;
+  --ok-bg: #DFF0E6;
+  --danger: #A12A2A;
+  --danger-bg: #F9E1E1;
+  --font-display: "Bricolage Grotesque", "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15131A; --surface: #1F1C26; --sunken: #2B2734; --ink: #EDEAF3; --ink-2: #A9A4B6;
+    --line: #38333F; --accent: #B9A0EC; --accent-ink: #1B1823; --mark: #E6BE42;
+    --warn: #F0AA66; --warn-bg: #3A2A17; --ok: #80CCA5; --ok-bg: #1B3327;
+    --danger: #F09090; --danger-bg: #3D1F1F; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15131A; --surface: #1F1C26; --sunken: #2B2734; --ink: #EDEAF3; --ink-2: #A9A4B6;
+  --line: #38333F; --accent: #B9A0EC; --accent-ink: #1B1823; --mark: #E6BE42;
+  --warn: #F0AA66; --warn-bg: #3A2A17; --ok: #80CCA5; --ok-bg: #1B3327;
+  --danger: #F09090; --danger-bg: #3D1F1F; color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--font-body); -webkit-text-size-adjust: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, p, ul, dl, dd, fieldset { margin: 0; padding: 0; }
+ul { list-style: none; }
+fieldset { border: 0; min-width: 0; }
+
+.wrap { max-width: 35rem; margin-inline: auto; padding-inline: 16px; padding-block: 20px 40px; display: flex; flex-direction: column; gap: 20px; }
+.wrap.has-tabs { padding-bottom: 104px; }
+
+h1 { font: 700 2rem/1.1 var(--font-display); letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font: 700 1.35rem/1.2 var(--font-display); letter-spacing: -0.01em; text-wrap: balance; min-width: 0; overflow-wrap: anywhere; }
+h3 { font: 700 0.8rem/1.3 var(--font-body); letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-2); }
+.muted { color: var(--ink-2); }
+.small { font-size: 0.875rem; }
+.num { font-variant-numeric: tabular-nums; }
+
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.head > div { min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.stack-s { display: flex; flex-direction: column; gap: 6px; }
+
+/* buttons */
+.btn { min-height: 46px; padding: 10px 16px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); font-weight: 500; text-align: center; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.btn.block { width: 100%; }
+.btn.danger { color: var(--danger); }
+.btn.danger[data-armed] { background: var(--danger-bg); border-color: var(--danger); font-weight: 700; }
+.link { background: none; border: 0; padding: 10px 0; min-height: 44px; color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+/* notices */
+.note { border-left: 4px solid var(--mark); background: var(--surface); padding: 12px 14px; border-radius: 0 var(--r) var(--r) 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.note.warn { border-left-color: var(--warn); }
+.note .link { padding-block: 4px; min-height: 36px; }
+
+.pill { display: inline-block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 99px; background: var(--sunken); color: var(--ink-2); white-space: nowrap; }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.danger { background: var(--danger-bg); color: var(--danger); }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+
+/* meter */
+.meter { height: 8px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--mark); border-radius: 4px; }
+.meter.warn i { background: var(--warn); }
+.meter.danger i { background: var(--danger); }
+.meter.big { height: 14px; border-radius: 7px; }
+
+/* client list */
+.clients { display: flex; flex-direction: column; gap: 10px; }
+.client { width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.client-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.client-name { font: 700 1.2rem/1.2 var(--font-display); min-width: 0; overflow-wrap: anywhere; }
+.client-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.client-remind { font-size: 0.875rem; font-weight: 700; color: var(--warn); overflow-wrap: anywhere; }
+
+/* archive: a file on the overview is dragged to the right */
+.swipe { position: relative; border-radius: var(--r); }
+.swipe.drag { overflow: hidden; }
+.swipe-bg { position: absolute; inset: 0; display: flex; align-items: center; padding-inline: 16px; border-radius: var(--r); background: var(--sunken); color: var(--ink-2); font-weight: 700; visibility: hidden; }
+.swipe.drag .swipe-bg { visibility: visible; }
+.swipe.go .swipe-bg { background: var(--accent); color: var(--accent-ink); }
+.swipe-bg .sw-del { display: none; }
+.swipe.left .swipe-bg { justify-content: flex-end; }
+.swipe.left .swipe-bg .sw-arch { display: none; }
+.swipe.left .swipe-bg .sw-del { display: inline; }
+.swipe.left.go .swipe-bg { background: var(--danger); color: var(--bg); }
+.trash-acts { display: flex; gap: 20px; flex-wrap: wrap; }
+.link.danger { color: var(--danger); }
+.swipe .client { position: relative; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.swipe .client.back { transition: transform 0.18s ease-out; }
+@media (prefers-reduced-motion: reduce) { .swipe .client.back { transition: none; } }
+.arch { display: flex; flex-direction: column; align-items: flex-start; }
+
+/* client header */
+.chead { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); margin-inline: -16px; padding: 4px 16px 10px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; }
+.chead-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* rows */
+.rows { border-top: 1px solid var(--line); }
+.rows > li { border-bottom: 1px solid var(--line); }
+.row { width: 100%; text-align: left; background: none; border: 0; padding: 14px 0; display: flex; flex-direction: column; gap: 4px; }
+.row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.row-top b { font-weight: 700; }
+.row-title { font-weight: 500; overflow-wrap: anywhere; }
+.row-text { color: var(--ink-2); overflow-wrap: anywhere; white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.row-agree { overflow-wrap: anywhere; font-size: 0.9375rem; }
+
+.check { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; }
+.check input { width: 26px; height: 26px; margin: 4px 0 0; flex: none; accent-color: var(--accent); }
+.check label { flex: 1; min-width: 0; padding-block: 5px; overflow-wrap: anywhere; }
+.check label small { display: block; color: var(--ink-2); font-size: 0.875rem; }
+.check label small.late { color: var(--warn); font-weight: 700; }
+.check.done label { color: var(--ink-2); text-decoration: line-through; }
+.check .link { padding: 5px 0; min-height: 36px; font-weight: 500; font-size: 0.875rem; }
+
+.empty { padding: 20px 0; color: var(--ink-2); }
+
+/* quota */
+.quota { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.quota-big { font: 700 3rem/1 var(--font-display); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.quota-big small { font: 500 1rem/1 var(--font-body); letter-spacing: 0; color: var(--ink-2); }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.facts dt { font-size: 0.8rem; color: var(--ink-2); }
+.facts dd { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pairs > li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; }
+.pairs input[type="checkbox"] { width: 26px; height: 26px; margin: 0; flex: none; accent-color: var(--accent); }
+.pairs label { flex: 1; min-width: 0; padding-block: 5px; }
+.pairs .eur, .pairs .std { text-align: right; white-space: nowrap; }
+.pairs .eur { min-width: 5rem; }
+.pairs .std { min-width: 4.25rem; }
+
+/* tabs */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tabs-in { max-width: 35rem; margin-inline: auto; display: flex; }
+.tab { flex: 1 1 0; min-width: 0; background: none; border: 0; border-top: 3px solid transparent; padding: 12px 2px 14px; font-size: 0.9rem; font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+.tab[aria-current="true"] { color: var(--ink); font-weight: 700; border-top-color: var(--mark); }
+.tab sup { font-size: 0.7rem; margin-left: 2px; color: var(--accent); font-weight: 700; }
+
+/* forms */
+.fhead { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); margin-inline: -16px; padding: 6px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fhead strong { font: 700 1.05rem/1.2 var(--font-display); text-align: center; min-width: 0; }
+.fhead .btn { min-height: 40px; padding: 6px 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label, legend { font-weight: 700; font-size: 0.9375rem; padding: 0; }
+.field .hint { font-size: 0.875rem; color: var(--ink-2); }
+input[type="text"], input[type="date"], input[type="number"], input[type="password"], select, textarea {
+  width: 100%; min-height: 46px; padding: 10px 12px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); }
+input[type="file"] { width: 100%; max-width: 100%; }
+textarea { min-height: 7.5rem; resize: vertical; line-height: 1.45; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.inline-check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.inline-check input { width: 24px; height: 24px; margin: 0; flex: none; accent-color: var(--accent); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+#bk-out { min-height: 9rem; font-size: 0.8rem; font-family: ui-monospace, Menlo, Consolas, monospace; }
+#bk-msg:empty { display: none; }
+#bk-msg { font-weight: 700; }
+#lock-msg:empty { display: none; }
+#lock-msg { font-weight: 700; color: var(--danger); }
+.lockwrap { padding-top: 18vh; }
+
+.toast { position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 30; margin-inline: auto; max-width: 22rem; background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: var(--r); text-align: center; font-weight: 500; }
+</style>
+
+<style>
+/* Ergänzungen aus dem Aktenschrank: abgerechnete Sitzungen und Rechnungsvorschau */
+.sbapp .pairs .re-mark { display: block; font-size: 0.8rem; color: var(--ok); }
+.sbapp .pairs > li.billed { background: var(--ok-bg); border-left: 4px solid var(--ok); padding-inline: 10px 12px; border-radius: 0 var(--r) var(--r) 0; }
+.sbapp .pairs > li.billed + li.billed { margin-top: 2px; }
+.sbapp .re-wrap { overflow-x: auto; }
+.sbapp .re-prev { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.sbapp .re-prev th, .sbapp .re-prev td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+.sbapp .re-prev thead th { font-size: 0.8rem; color: var(--ink-2); font-weight: 600; }
+.sbapp .re-prev .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sbapp .re-prev tfoot th { text-align: right; }
+.sbapp .re-prev tfoot th, .sbapp .re-prev tfoot td { border-bottom: 0; }
+.sbapp .btn[disabled] { opacity: .5; cursor: default; }
+</style>
+
+<div id="sb"></div>
+
+<script>
+/* Sitzungsbuch für Handy und Tablet.
+   Dies ist derselbe Baustein wie im Aktenschrank (Taschen-Ansicht).
+   Jeder Eintrag trägt einen Zeitstempel; beim Einlesen einer Sicherung
+   wird zusammengeführt, je Eintrag gilt der jüngere Stand. Die Einträge
+   bleiben wie bisher unter "sitzungsbuch.v1" im Browser gespeichert. */
+/* ---------- Sitzungsbuch ---------- */
+(function () {
+  'use strict';
+
+  var KEY = 'sitzungsbuch.v1';
+  var FASSUNG = '13. Oktober 2026, 20:40 Uhr';   // sichtbar auf dem Sperrbildschirm und in den Einstellungen
+  var storageOk = true;
+  var root = null, app = null, lockEl = null, toastEl = null;   // werden beim Einhängen gesetzt
+  var toastTimer = null;
+  var dlPromise = (window.claude && typeof window.claude.use === 'function')
+    ? window.claude.use('downloads').catch(function () { return null; })
+    : Promise.resolve(null);
+
+  /* ------------------------------------------------------------------
+     Zwei Betriebsarten
+     'tasche'  Handy und Tablet: kein Zugriff auf Ordner. Alle Akten
+               liegen im Speicher des Browsers, wie im bisherigen
+               Sitzungsbuch. Abgleich über die Sicherungsdatei.
+     'ordner'  Computer: der Aktenschrank verwaltet die Akten als
+               Ordner. Hier arbeitet das Sitzungsbuch mit genau einer
+               Akte, und die liegt als Datei in ihrem Ordner.
+     ------------------------------------------------------------------ */
+  var MODE = 'tasche';
+  var inFolder = function () { return MODE === 'ordner'; };
+  var folderIO = null;   // vom Aktenschrank gesetzt: { read, write, name }
+
+  /* Jede Änderung bekommt einen Zeitstempel. Beim Abgleich zweier
+     Geräte gewinnt damit je Eintrag der jüngere Stand. */
+  function stamp(x) { if (x && typeof x === 'object') x.mod = new Date().toISOString(); return x; }
+
+  /* ---------- helpers ---------- */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function z(n) { return String(n).padStart(2, '0'); }
+  function iso(d) { return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()); }
+  function today() { return iso(new Date()); }
+  function addDays(n) { var d = new Date(); d.setDate(d.getDate() + n); return iso(d); }
+  function toDate(s) { var p = String(s).split('-').map(Number); return new Date(p[0], (p[1] || 1) - 1, p[2] || 1); }
+  function fDate(s, opts) {
+    if (!s) return '';
+    try { return new Intl.DateTimeFormat('de-DE', opts || { day: 'numeric', month: 'short', year: 'numeric' }).format(toDate(s)); }
+    catch (e) { return String(s); }
+  }
+  function fDay(s) { return fDate(s, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }); }
+  var nf = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
+  var cf = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+  /* Euro amount noted in the free-text "Ort" field. With several amounts the last one counts. */
+  function euroIn(text) {
+    var re = /€\s*(\d[\d.]*(?:,\d{1,2})?)|(\d[\d.]*(?:,\d{1,2})?)\s*(?:€|euro\b|eur\b)/gi, m, t = null;
+    while ((m = re.exec(String(text || '')))) t = m[1] || m[2];
+    if (t == null) return null;
+    t = t.replace(/\.+$/, '');
+    if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    var n = Number(t);
+    return isFinite(n) ? n : null;
+  }
+  function daysBetween(a, b) { return Math.round((toDate(b) - toDate(a)) / 86400000); }
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.hidden = true; }, 2600);
+  }
+
+  /* ---------- state ---------- */
+  function exampleClient() {
+    var y = new Date().getFullYear();
+    return {
+      id: uid(), example: true, name: 'M. K.', note: 'Beispielakte zum Ausprobieren. Coaching im Rahmen der Eingliederungshilfe.',
+      quota: { hours: 40, unit: 60, from: y + '-01-01', to: y + '-12-31' },
+      sessions: [
+        { id: uid(), date: addDays(-30), min: 90, form: 'Präsenz', counts: true, ort: 'Hausbesuch, 18 km', topics: 'Erstgespräch, Anliegen klären', notes: 'Anliegen: Erschöpfung nach Arbeitstagen, wenig Erholung am Wochenende.\nBisherige Strategien gesammelt.', agree: 'Eine Woche lang Belastung am Abend notieren.' },
+        { id: uid(), date: addDays(-16), min: 60, form: 'Video', counts: true, topics: 'Stress-Signale erkennen', notes: 'Frühe Signale benannt: Geräuschempfindlichkeit, Rückzug, Kopfdruck.\nUnterschied zwischen Anspannung und Erschöpfung besprochen.', agree: 'Signalliste ergänzen. Kopfhörer im Großraumbüro ausprobieren.' },
+        { id: uid(), date: addDays(-2), min: 60, form: 'Video', counts: true, topics: 'Pausen im Arbeitsalltag', notes: 'Kopfhörer helfen deutlich. Pausen werden noch oft ausgelassen.\nGespräch mit der Teamleitung steht an.', agree: 'Zwei feste Pausen pro Arbeitstag einplanen.' }
+      ],
+      moods: [],
+      tasks: [],
+      topics: [
+        { id: uid(), text: 'Gespräch mit der Teamleitung nachbesprechen', done: false, created: addDays(-2) },
+        { id: uid(), text: 'Erholung am Wochenende', done: false, created: addDays(-2) }
+      ]
+    };
+  }
+  function normalize(data) {
+    var s = (data && typeof data === 'object') ? data : {};
+    if (!Array.isArray(s.clients)) s.clients = [];
+    s.clients = s.clients.filter(function (c) { return c && typeof c === 'object'; });
+    s.clients.forEach(function (c) {
+      if (!c.id) c.id = uid();
+      c.name = String(c.name || 'Ohne Namen');
+      c.note = String(c.note || '');
+      var q = (c.quota && typeof c.quota === 'object') ? c.quota : {};
+      /* mod ist der Zeitstempel der letzten Änderung. Er muss erhalten
+         bleiben, sonst kann der Abgleich die Stände nicht vergleichen. */
+      c.quota = { hours: +q.hours || 0, unit: +q.unit || 60, from: q.from || '', to: q.to || '', mod: q.mod || '' };
+      if (c.mod != null) c.mod = String(c.mod);
+      c.deleted = Array.isArray(c.deleted)
+        ? c.deleted.filter(function (x) { return x && x.id; }).map(function (x) { return { id: String(x.id), at: String(x.at || '') }; })
+        : [];
+      ['sessions', 'moods', 'tasks', 'topics'].forEach(function (k) {
+        c[k] = Array.isArray(c[k]) ? c[k].filter(function (x) { return x && typeof x === 'object'; }) : [];
+        c[k].forEach(function (x) { if (!x.id) x.id = uid(); if (x.mod != null) x.mod = String(x.mod); });
+      });
+    });
+    /* Am Handy gelöschte Akten: Der Vermerk verhindert, dass der Abgleich
+       sie wieder auf das Gerät holt. */
+    s.deletedClients = Array.isArray(s.deletedClients)
+      ? s.deletedClients.filter(function (x) { return x && x.id; }).map(function (x) { return { id: String(x.id), at: String(x.at || '') }; })
+      : [];
+    s.trash = Array.isArray(s.trash)
+      ? s.trash.filter(function (t) { return t && t.c && typeof t.c === 'object'; })
+        .map(function (t) { return { at: String(t.at || ''), c: normalize({ clients: [t.c] }).clients[0] }; })
+      : [];
+    s.lastBackup = s.lastBackup || '';
+    return s;
+  }
+
+  /* ------------------------------------------------------------------
+     Zwei Stände einer Akte zusammenführen
+     Beide Geräte dürfen eintragen. Je Eintrag gewinnt der jüngere
+     Zeitstempel; was nur auf einer Seite steht, kommt dazu. Nichts
+     wird stillschweigend überschrieben. Absichtlich gelöschte Einträge
+     bleiben gelöscht, solange der Löschvermerk jünger ist als die
+     letzte Änderung am Eintrag.
+     ------------------------------------------------------------------ */
+  function newer(a, b) { return String(a || '') > String(b || ''); }
+  function mergeList(a, b, gone) {
+    var seen = {}, order = [], pick = {};
+    function take(x) {
+      if (!seen[x.id]) { seen[x.id] = 1; order.push(x.id); pick[x.id] = x; return; }
+      if (newer(x.mod, pick[x.id].mod)) pick[x.id] = x;
+    }
+    (a || []).forEach(take); (b || []).forEach(take);
+    return order.map(function (id) { return pick[id]; })
+      .filter(function (x) { return !(gone[x.id] && !newer(x.mod, gone[x.id])); });
+  }
+  function mergeClient(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    var gone = {};
+    [a, b].forEach(function (c) {
+      (c.deleted || []).forEach(function (x) { if (newer(x.at, gone[x.id])) gone[x.id] = x.at; });
+    });
+    var lead = newer(b.mod, a.mod) ? b : a;                       // jüngerer Stand der Kopfdaten
+    var q = newer((b.quota || {}).mod, (a.quota || {}).mod) ? b.quota : a.quota;
+    var out = {
+      id: a.id || b.id, name: lead.name, note: lead.note, mod: lead.mod || '',
+      quota: q, sessions: mergeList(a.sessions, b.sessions, gone), topics: mergeList(a.topics, b.topics, gone),
+      moods: mergeList(a.moods, b.moods, gone), tasks: mergeList(a.tasks, b.tasks, gone),
+      deleted: Object.keys(gone).map(function (id) { return { id: id, at: gone[id] }; })
+    };
+    if (lead.followUp) out.followUp = lead.followUp;
+    if (lead.archived) { out.archived = true; out.archivedAt = lead.archivedAt; }
+    if (a.example && b.example) out.example = true;
+    return out;
+  }
+  /* Was hat das Zusammenführen gebracht? Für die Rückmeldung an Vera. */
+  function mergeCount(before, after) {
+    var n = 0;
+    ['sessions', 'topics', 'moods', 'tasks'].forEach(function (k) {
+      var had = {}; ((before && before[k]) || []).forEach(function (x) { had[x.id] = x.mod || ''; });
+      (after[k] || []).forEach(function (x) { if (!(x.id in had) || newer(x.mod, had[x.id])) n += 1; });
+    });
+    return n;
+  }
+  function load() {
+    var raw = null;
+    try {
+      localStorage.setItem(KEY + '.test', '1'); localStorage.removeItem(KEY + '.test');
+      raw = localStorage.getItem(KEY);
+    } catch (e) { storageOk = false; }
+    if (raw) {
+      try {
+        var o = JSON.parse(raw);
+        if (o && o.locked) { lockMeta = { salt: o.salt, iter: +o.iter || 310000 }; return null; }
+        return normalize(o);
+      } catch (e) { /* fall through to a fresh book */ }
+    }
+    return normalize({ clients: [exampleClient()] });
+  }
+  /* With a code set, entries are stored encrypted (AES-GCM, key derived from the code). */
+  var cryptoKey = null, lockMeta = null, saveChain = Promise.resolve();
+  /* true, solange die Einträge noch verschlüsselt im Speicher liegen und S
+     nur ein leerer Platzhalter ist. Dann darf nichts gespeichert werden. */
+  var pendingLoad = false;
+  function save() {
+    /* Am Computer: die eine offene Akte in ihre Datei im Ordner der Akte.
+       Das Schreiben selbst erledigt der Aktenschrank, der auch die PDFs
+       der Akte nachzieht. */
+    if (inFolder()) {
+      var c = S.clients[0];
+      if (!c || !folderIO) return;
+      try { folderIO.write(c); storageOk = true; }
+      catch (e) { storageOk = false; }
+      return;
+    }
+    if (pendingLoad) return;
+    if (!cryptoKey) {
+      try { localStorage.setItem(KEY, JSON.stringify(S)); storageOk = true; }
+      catch (e) { storageOk = false; }
+      return;
+    }
+    var json = JSON.stringify(S), key = cryptoKey, meta = lockMeta;
+    saveChain = saveChain.then(function () {
+      var iv = crypto.getRandomValues(new Uint8Array(12));
+      return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(json)).then(function (ct) {
+        localStorage.setItem(KEY, JSON.stringify({ locked: 1, v: 1, salt: meta.salt, iter: meta.iter, iv: b64(iv), data: b64(new Uint8Array(ct)) }));
+        storageOk = true;
+      });
+    }).catch(function () { storageOk = false; });
+  }
+  async function openWith(pin) {
+    await saveChain;
+    var o = JSON.parse(localStorage.getItem(KEY));
+    var iter = +o.iter || ITER;
+    var key = await deriveKey(pin, unb64(o.salt), iter);
+    var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(o.iv) }, key, unb64(o.data));
+    return { key: key, meta: { salt: o.salt, iter: iter }, data: JSON.parse(new TextDecoder().decode(plain)) };
+  }
+
+  /* S wird beim Einhängen gefüllt: in der Taschen-Ansicht aus dem
+     Browserspeicher, am Computer aus der Datei der offenen Akte. */
+  var S = normalize({ clients: [] });
+  var isLocked = false;
+  var ui = { view: 'home', clientId: null, tab: 'sessions', form: null, scrollY: 0, showDone: {} };
+
+  function client() { return S.clients.find(function (c) { return c.id === ui.clientId; }) || null; }
+  function realClients() { return S.clients.filter(function (c) { return !c.example; }); }
+
+  function quotaStats(c) {
+    var q = c.quota, unit = q.unit || 60, t = today();
+    var counted = c.sessions.filter(function (s) {
+      return s.counts !== false && (!q.from || s.date >= q.from) && (!q.to || s.date <= q.to);
+    });
+    var usedMin = counted.reduce(function (a, s) { return a + (+s.min || 0); }, 0);
+    var used = usedMin / unit, total = q.hours || 0, left = total - used;
+    var st = { total: total, used: used, left: left, unit: unit, counted: counted, pct: total ? Math.max(0, Math.min(1, used / total)) : 0, level: '', label: '' };
+    if (!total) return st;
+    if (left < 0) { st.level = 'danger'; st.label = 'überzogen'; }
+    else if (left === 0) { st.level = 'danger'; st.label = 'aufgebraucht'; }
+    else if (q.to && q.to < t) { st.level = 'danger'; st.label = 'Zeitraum abgelaufen'; }
+    else if (left <= Math.max(2, total * 0.1)) { st.level = 'warn'; st.label = 'fast aufgebraucht'; }
+    else if (q.to && daysBetween(t, q.to) <= 30) { st.level = 'warn'; st.label = 'endet am ' + fDate(q.to, { day: 'numeric', month: 'short' }); }
+    return st;
+  }
+
+  /* Follow-up application: remind 11 weeks before the approved period ends, until it is marked as filed.
+     The mark belongs to one period end, so a new period brings the reminder back. */
+  var FOLGE_TAGE = 77;
+  function folge(c) {
+    var to = c.quota && c.quota.to;
+    if (!to || c.archived) return null;
+    var days = daysBetween(today(), to);
+    if (days > FOLGE_TAGE) return null;
+    return { to: to, days: days, done: (c.followUp && c.followUp.to === to) ? c.followUp : null };
+  }
+  function folgeText(fo) {
+    if (fo.days < 0) return 'Der bewilligte Zeitraum ist am ' + fDate(fo.to) + ' abgelaufen.';
+    var rel = fo.days === 0 ? 'heute' : fo.days === 1 ? 'morgen' : fo.days < 14 ? 'in ' + fo.days + ' Tagen' : 'in ' + Math.round(fo.days / 7) + ' Wochen';
+    return 'Der bewilligte Zeitraum endet am ' + fDate(fo.to) + ' (' + rel + ').';
+  }
+
+  /* ---------- views ---------- */
+  function viewHome() {
+    var clients = S.clients.filter(function (c) { return !c.archived; }).sort(function (a, b) { return a.name.localeCompare(b.name, 'de'); });
+    var archived = S.clients.length - clients.length;
+    var undo = ui.undo ? S.clients.find(function (c) { return c.id === ui.undo && c.archived; }) : null;
+    var openTopics = clients.reduce(function (a, c) { return a + c.topics.filter(function (x) { return !x.done; }).length; }, 0);
+    var hasExample = clients.some(function (c) { return c.example; });
+    var real = realClients().length;
+    var stale = real && (!S.lastBackup || daysBetween(S.lastBackup.slice(0, 10), today()) > 14);
+    var h = '<div class="wrap">';
+    h += '<header class="head"><div><h1>Sitzungsbuch</h1><p class="muted">' + clients.length + (clients.length === 1 ? ' Akte' : ' Akten') + ' · ' + openTopics + (openTopics === 1 ? ' vorgemerktes Thema' : ' vorgemerkte Themen') + '</p></div>' +
+      '<button class="btn" data-act="go" data-view="backup">Einstellungen</button></header>';
+    if (!storageOk) h += '<div class="note warn"><strong>Speichern auf diesem Gerät ist gerade nicht möglich.</strong><span class="small">Einträge bleiben nur erhalten, bis die Seite geschlossen wird. Unter „Einstellungen“ lässt sich eine Sicherung erstellen.</span></div>';
+    if (hasExample) h += '<div class="note"><span>Die Akte „M. K.“ ist ein Beispiel zum Ausprobieren.</span><button class="link" data-act="example-remove">Beispiel entfernen</button></div>';
+    if (stale) h += '<div class="note"><span>' + (S.lastBackup ? 'Letzte Sicherung am ' + esc(fDate(S.lastBackup.slice(0, 10))) + '.' : 'Es gibt noch keine Sicherungsdatei.') + '</span><button class="link" data-act="go" data-view="backup">Jetzt sichern</button></div>';
+    if (undo) h += '<div class="note" role="status"><span>Die Akte „' + esc(undo.name) + '“ liegt jetzt im Archiv.</span><button class="link" data-act="unarchive" data-id="' + esc(undo.id) + '">Rückgängig</button></div>';
+    if (ui.undoDel) h += '<div class="note" role="status"><span>Die Akte „' + esc(ui.undoDel.name) + '“ liegt jetzt im Papierkorb.</span><button class="link" data-act="undelete">Rückgängig</button></div>';
+    if (!clients.length) {
+      h += archived ? '<p class="empty">Alle Akten liegen im Archiv.</p>' : '<p class="empty">Noch keine Akte angelegt. Jede Klientin und jeder Klient bekommt eine eigene Akte mit Sitzungen, Themen und Stundenkontingent.</p>';
+    } else {
+      h += '<ul class="clients">';
+      clients.forEach(function (c) {
+        var q = quotaStats(c);
+        var last = c.sessions.map(function (s) { return s.date; }).sort().pop();
+        var open = c.topics.filter(function (x) { return !x.done; }).length;
+        var fo = folge(c);
+        h += '<li class="swipe" data-id="' + esc(c.id) + '"><span class="swipe-bg" aria-hidden="true"><span class="sw-arch">Archivieren</span><span class="sw-del">Papierkorb</span></span><button class="client" data-act="open" data-id="' + esc(c.id) + '">' +
+          '<span class="client-top"><span class="client-name">' + esc(c.name) + '</span>' +
+          (c.example ? '<span class="pill">Beispiel</span>' : (q.label ? '<span class="pill ' + q.level + '">' + esc(q.label) + '</span>' : '')) + '</span>' +
+          (q.total ? '<span class="meter ' + q.level + '"><i style="width:' + (q.pct * 100).toFixed(1) + '%"></i></span>' : '') +
+          '<span class="client-foot small muted"><span class="num">' + (q.total ? nf.format(q.used) + ' von ' + nf.format(q.total) + ' Std. verbraucht' : 'Kein Kontingent hinterlegt') + '</span>' +
+          '<span>' + (last ? 'Zuletzt ' + esc(fDate(last, { day: 'numeric', month: 'short' })) : 'Noch keine Sitzung') + (open ? ' · ' + open + (open === 1 ? ' Thema vorgemerkt' : ' Themen vorgemerkt') : '') + '</span></span>' +
+          (fo && !fo.done ? '<span class="client-remind">Folgeantrag stellen · ' + esc(fo.days < 0 ? 'Zeitraum abgelaufen am ' : 'Zeitraum endet am ') + esc(fDate(fo.to)) + '</span>' : '') +
+          '</button></li>';
+      });
+      h += '</ul><p class="small muted">Eine Akte nach rechts ziehen legt sie ins Archiv, nach links in den Papierkorb.</p>';
+    }
+    h += '<button class="btn primary block" data-act="new" data-type="client">Akte anlegen</button>';
+    h += '<button class="btn block" data-act="go" data-view="archive">Archiv' + (archived ? ' (' + archived + ')' : '') + '</button>';
+    h += '<button class="btn block" data-act="go" data-view="trash">Papierkorb' + (S.trash.length ? ' (' + S.trash.length + ')' : '') + '</button>';
+    h += '<p class="small muted">Alle Einträge liegen nur auf diesem Gerät' + (cryptoKey ? ', verschlüsselt mit dem Zahlencode' : '') + '. Unter „Einstellungen“ gibt es die Sicherung als PDF' + (cryptoKey ? '.' : ' und den Zahlencode zum Sperren.') + '</p>';
+    if (cryptoKey) h += '<button class="btn block" data-act="lock">Jetzt sperren</button>';
+    return h + '</div>';
+  }
+
+  function viewArchive() {
+    var list = S.clients.filter(function (c) { return c.archived; }).sort(function (a, b) { return a.name.localeCompare(b.name, 'de'); });
+    var h = '<div class="wrap"><header class="chead"><div class="chead-row"><button class="link" data-act="go" data-view="home">‹ Alle Akten</button></div><h2>Archiv</h2></header>';
+    if (!list.length) return h + '<p class="empty">Im Archiv liegt keine Akte. Auf der Übersicht lässt sich eine Akte nach rechts ziehen, um sie hier abzulegen.</p></div>';
+    h += '<p class="small muted">Archivierte Akten bleiben vollständig erhalten und sind in der Sicherung enthalten.</p><ul class="clients">';
+    list.forEach(function (c) {
+      h += '<li class="arch"><button class="client" data-act="open" data-id="' + esc(c.id) + '">' +
+        '<span class="client-top"><span class="client-name">' + esc(c.name) + '</span>' + (c.example ? '<span class="pill">Beispiel</span>' : '') + '</span>' +
+        '<span class="client-foot small muted"><span class="num">' + c.sessions.length + (c.sessions.length === 1 ? ' Sitzung' : ' Sitzungen') + '</span>' +
+        '<span>' + (c.archivedAt ? 'Archiviert am ' + esc(fDate(c.archivedAt)) : 'Archiviert') + '</span></span></button>' +
+        '<button class="link" data-act="unarchive" data-id="' + esc(c.id) + '">Wiederherstellen</button></li>';
+    });
+    return h + '</ul></div>';
+  }
+
+  /* Papierkorb: gelöschte Akten bleiben vollständig erhalten, bis sie
+     endgültig gelöscht werden. */
+  function viewTrash() {
+    var list = S.trash.slice().sort(function (a, b) { return a.at < b.at ? 1 : a.at > b.at ? -1 : 0; });
+    var h = '<div class="wrap"><header class="chead"><div class="chead-row"><button class="link" data-act="go" data-view="home">‹ Alle Akten</button></div><h2>Papierkorb</h2></header>';
+    if (!list.length) return h + '<p class="empty">Der Papierkorb ist leer. Auf der Übersicht lässt sich eine Akte nach links ziehen, um sie hier abzulegen.</p></div>';
+    h += '<p class="small muted">Akten im Papierkorb bleiben mit allen Einträgen erhalten, bis sie endgültig gelöscht werden. Im Aktenschrank am Computer bleiben sie in jedem Fall bestehen.</p><ul class="clients">';
+    list.forEach(function (t) {
+      var c = t.c;
+      h += '<li class="arch"><div class="client">' +
+        '<span class="client-top"><span class="client-name">' + esc(c.name) + '</span>' + (c.example ? '<span class="pill">Beispiel</span>' : '') + '</span>' +
+        '<span class="client-foot small muted"><span class="num">' + c.sessions.length + (c.sessions.length === 1 ? ' Sitzung' : ' Sitzungen') + '</span>' +
+        '<span>' + (t.at ? 'Gelöscht am ' + esc(fDate(t.at.slice(0, 10))) : 'Gelöscht') + '</span></span></div>' +
+        '<div class="trash-acts"><button class="link" data-act="trash-restore" data-id="' + esc(c.id) + '">Wiederherstellen</button>' +
+        '<button class="link danger" data-act="trash-purge" data-id="' + esc(c.id) + '">Endgültig löschen</button></div></li>';
+    });
+    h += '</ul><button class="btn danger block" data-act="trash-empty">Papierkorb leeren</button>';
+    return h + '</div>';
+  }
+
+  var TABS = [['sessions', 'Sitzungen'], ['topics', 'Themen'], ['quota', 'Stunden']];
+
+  function viewClient() {
+    var c = client();
+    if (!c) { ui.view = 'home'; return viewHome(); }
+    var h = '<div class="wrap has-tabs">';
+    /* Am Computer steht der Name der Akte schon in der Kopfzeile des
+       Aktenschranks, und zurück geht es über die Ordnerreiter. */
+    h += inFolder()
+      ? '<header class="chead"><div class="chead-row"><span class="muted small">' +
+        (c.sessions.length ? c.sessions.length + (c.sessions.length === 1 ? ' Sitzung' : ' Sitzungen') : 'Noch keine Sitzung') + '</span>' +
+        '<button class="link" data-act="edit" data-type="client" data-id="' + esc(c.id) + '">Rahmen und Hinweise</button></div></header>'
+      : '<header class="chead"><div class="chead-row"><button class="link" data-act="go" data-view="' + (c.archived ? 'archive' : 'home') + '">‹ ' + (c.archived ? 'Archiv' : 'Alle Akten') + '</button>' +
+        '<button class="link" data-act="edit" data-type="client" data-id="' + esc(c.id) + '">Akte bearbeiten</button></div>' +
+        '<h2>' + esc(c.name) + (c.example ? ' <span class="pill">Beispiel</span>' : '') + (c.archived ? ' <span class="pill">Archiv</span>' : '') + '</h2></header>';
+    var fo = folge(c);
+    if (fo && !fo.done) h += '<div class="note warn"><strong>Folgeantrag stellen</strong><span>' + esc(folgeText(fo)) + '</span><button class="link" data-act="folge-done">Als gestellt vermerken</button></div>';
+    if (c.note && ui.tab === 'sessions') h += '<p class="muted small" style="white-space:pre-line;overflow-wrap:anywhere">' + esc(c.note) + '</p>';
+    h += ({ sessions: tabSessions, topics: tabTopics, quota: tabQuota }[ui.tab] || tabSessions)(c);
+    if (fo && fo.done && ui.tab === 'quota') h += '<div class="note"><span>Folgeantrag gestellt' + (fo.done.at ? ' am ' + esc(fDate(fo.done.at)) : '') + '.</span><button class="link" data-act="folge-undo">Vermerk zurücknehmen</button></div>';
+    h += '</div><nav class="tabs" aria-label="Bereiche der Akte"><div class="tabs-in">';
+    var counts = { topics: c.topics.filter(function (x) { return !x.done; }).length };
+    TABS.forEach(function (t) {
+      h += '<button class="tab" data-act="tab" data-tab="' + t[0] + '"' + (ui.tab === t[0] ? ' aria-current="true"' : '') + '>' + t[1] + (counts[t[0]] ? '<sup>' + counts[t[0]] + '</sup>' : '') + '</button>';
+    });
+    return h + '</div></nav>';
+  }
+
+  function tabSessions(c) {
+    var list = c.sessions.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+    var openTopics = c.topics.filter(function (x) { return !x.done; });
+    var h = '<button class="btn primary block" data-act="new" data-type="session">Sitzung eintragen</button>';
+    if (openTopics.length) h += '<div class="note"><span class="small muted">Vorgemerkt für die nächste Sitzung</span><span>' + openTopics.map(function (t) { return esc(t.text); }).join(' · ') + '</span></div>';
+    if (!list.length) return h + '<p class="empty">Noch keine Sitzung eingetragen.</p>';
+    h += '<ul class="rows">';
+    list.forEach(function (s) {
+      h += '<li><button class="row" data-act="edit" data-type="session" data-id="' + esc(s.id) + '">' +
+        '<span class="row-top"><b>' + esc(fDay(s.date)) + '</b><span class="muted small num">' + esc(s.min || 0) + ' Min · ' + esc(s.form || 'Präsenz') + (s.counts === false ? ' · nicht angerechnet' : '') + '</span></span>' +
+        (s.ort ? '<span class="row-agree"><span class="muted">Ort:</span> ' + esc(s.ort) + '</span>' : '') +
+        (s.topics ? '<span class="row-title">' + esc(s.topics) + '</span>' : '') +
+        (s.notes ? '<span class="row-text">' + esc(s.notes) + '</span>' : '') +
+        (s.agree ? '<span class="row-agree"><span class="muted">Vereinbart:</span> ' + esc(s.agree) + '</span>' : '') +
+        '</button></li>';
+    });
+    return h + '</ul>';
+  }
+
+  function checkList(c, type, items, emptyText) {
+    var open = items.filter(function (x) { return !x.done; }), done = items.filter(function (x) { return x.done; });
+    var t = today(), h = '';
+    if (type === 'task') open.sort(function (a, b) { return (a.due || '9999') < (b.due || '9999') ? -1 : 1; });
+    function li(x) {
+      var sub = '';
+      if (type === 'task' && x.due) sub = '<small class="' + (!x.done && x.due < t ? 'late' : '') + '">' + (!x.done && x.due < t ? 'überfällig seit ' : 'bis ') + esc(fDate(x.due)) + '</small>';
+      if (type === 'topic' && x.done && x.doneAt) sub = '<small>besprochen am ' + esc(fDate(x.doneAt)) + '</small>';
+      return '<li class="check' + (x.done ? ' done' : '') + '"><input type="checkbox" id="chk-' + esc(x.id) + '" data-act="toggle" data-type="' + type + '" data-id="' + esc(x.id) + '"' + (x.done ? ' checked' : '') + '>' +
+        '<label for="chk-' + esc(x.id) + '">' + esc(x.text) + sub + '</label>' +
+        '<button class="link" data-act="edit" data-type="' + type + '" data-id="' + esc(x.id) + '">Ändern</button></li>';
+    }
+    if (!open.length) h += '<p class="empty">' + emptyText + '</p>';
+    else h += '<ul class="rows">' + open.map(li).join('') + '</ul>';
+    if (done.length) {
+      var shown = !!ui.showDone[type];
+      h += '<div><button class="link" data-act="show-done" data-type="' + type + '" aria-expanded="' + shown + '">' + (type === 'task' ? 'Erledigt' : 'Besprochen') + ' (' + done.length + ') ' + (shown ? 'ausblenden' : 'anzeigen') + '</button>';
+      if (shown) h += '<ul class="rows">' + done.map(li).join('') + '</ul>';
+      h += '</div>';
+    }
+    return h;
+  }
+  function tabTopics(c) {
+    return '<button class="btn primary block" data-act="new" data-type="topic">Thema vormerken</button>' +
+      checkList(c, 'topic', c.topics.slice(), 'Für die nächste Sitzung ist nichts vorgemerkt.');
+  }
+
+  function tabQuota(c) {
+    var q = quotaStats(c), k = c.quota, h = '';
+    if (!q.total) {
+      return '<p class="empty">Für diese Akte ist noch kein Stundenkontingent hinterlegt. Nach dem Eintragen werden die Sitzungen automatisch angerechnet.</p>' +
+        '<button class="btn primary block" data-act="edit" data-type="quota" data-id="' + esc(c.id) + '">Kontingent eintragen</button>';
+    }
+    var period = (k.from || k.to) ? (k.from ? fDate(k.from) : 'offen') + ' bis ' + (k.to ? fDate(k.to) : 'offen') : 'Ohne festen Zeitraum';
+    h += '<section class="quota"><div class="head"><p class="small muted">' + esc(period) + '</p>' + (q.label ? '<span class="pill ' + q.level + '">' + esc(q.label) + '</span>' : '<span class="pill ok">im Rahmen</span>') + '</div>' +
+      '<p class="quota-big">' + nf.format(q.left) + ' <small>Std. offen</small></p>' +
+      '<div class="meter big ' + q.level + '" role="img" aria-label="' + nf.format(q.used) + ' von ' + nf.format(q.total) + ' Stunden verbraucht"><i style="width:' + (q.pct * 100).toFixed(1) + '%"></i></div>' +
+      '<dl class="facts"><div><dt>Bewilligt</dt><dd>' + nf.format(q.total) + ' Std.</dd></div><div><dt>Verbraucht</dt><dd>' + nf.format(q.used) + ' Std.</dd></div><div><dt>Sitzungen</dt><dd>' + q.counted.length + '</dd></div></dl>' +
+      '<p class="small muted">Eine Stunde entspricht ' + q.unit + ' Minuten.</p></section>';
+    h += '<button class="btn block" data-act="edit" data-type="quota" data-id="' + esc(c.id) + '">Kontingent bearbeiten</button>';
+    if (q.counted.length) {
+      h += '<div class="stack-s"><h3>Bisherige Sitzungen</h3><ul class="rows pairs">';
+      q.counted.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).forEach(function (s) {
+        h += '<li' + (s.rechnung ? ' class="billed"' : '') + '><input type="checkbox" id="tick-' + esc(s.id) + '" data-act="tick" data-id="' + esc(s.id) + '"' + (s.tick ? ' checked' : '') + '><label for="tick-' + esc(s.id) + '">' + esc(fDate(s.date)) + (s.rechnung ? '<span class="re-mark">Abgerechnet, Rechnung Nr. ' + esc(s.rechnung.nr) + '</span>' : '') + '</label><span class="num eur">' + (euroIn(s.ort) == null ? '' : esc(cf.format(euroIn(s.ort)))) + '</span><span class="num std">' + nf.format((+s.min || 0) / q.unit) + ' Std.</span></li>';
+      });
+      h += '</ul></div>';
+      h += invoiceBlock(c);
+    }
+    return h;
+  }
+
+  /* ---------- Rechnung aus den angekreuzten Sitzungen ----------
+     Am Computer schreibt der Aktenschrank die Rechnung als Word-Datei
+     in den Ordner der Rechnungen. Am Handy werden nur die Häkchen
+     gesetzt; sie kommen mit dem Abgleich an den Computer. */
+  function invoicePick(c) {
+    return quotaStats(c).counted.filter(function (s) { return s.tick; })
+      .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  }
+  var canInvoice = function () { return inFolder() && folderIO && typeof folderIO.rechnung === 'function'; };
+  function invoiceBlock(c) {
+    var n = invoicePick(c).length, h = '';
+    if (!canInvoice()) {
+      return inFolder() ? '' : '<p class="small muted">Die Rechnung entsteht am Computer im Aktenschrank. Die Häkchen kommen mit dem Abgleich dorthin.</p>';
+    }
+    if (ui.reDone && ui.reDone.clientId === c.id && c.sessions.some(function (s) { return s.rechnung && s.rechnung.nr === ui.reDone.nr; })) {
+      h += '<div class="note"><span>Rechnung Nr. ' + esc(ui.reDone.nr) + ' liegt im Ordner „' + esc(folderIO.rechnungOrdner || 'Rechnungen') + '“.</span>' +
+        '<button class="link" data-act="invoice-open">In Word öffnen</button></div>';
+    }
+    h += '<button class="btn primary block" data-act="invoice"' + (n ? '' : ' disabled') + '>Rechnung erstellen' + (n ? ' (' + n + (n === 1 ? ' Sitzung' : ' Sitzungen') + ')' : '') + '</button>';
+    h += '<p class="small muted">' + (n ? '' : 'Kreuzen Sie die Sitzungen an, die auf die Rechnung sollen. ') + 'Die Rechnung entsteht nach der Vorlage „Rechnung MUSTER“ als Word-Datei im Ordner „' + esc(folderIO.rechnungOrdner || 'Rechnungen') + '“.</p>';
+    return h;
+  }
+  function invoiceForm(c) {
+    var pick = invoicePick(c), k = folderIO.rechnungKopf(c) || {}, p = folderIO.rechnungPosten(c, pick);
+    var alt = pick.filter(function (s) { return s.rechnung; });
+    var h = '<div class="two">' + field('Rechnungsnummer', 'f-nr', '<input type="text" id="f-nr" name="nr" required maxlength="40" autocomplete="off" value="">', 'Vorschlag: die nächste freie Nummer.') +
+      field('Rechnungsdatum', 'f-rdate', '<input type="date" id="f-rdate" name="rdate" required value="' + esc(today()) + '">') + '</div>' +
+      '<div class="two">' + field('Autismustherapie von', 'f-rname', '<input type="text" id="f-rname" name="rname" maxlength="80" value="' + esc(k.name || '') + '">',
+        'Auf der Rechnung folgt dahinter: (Diagnose: 6A02).') +
+      field('Aktenzeichen', 'f-akz', '<input type="text" id="f-akz" readonly value="' + esc(k.akz || '') + '"' + (k.akz ? '' : ' placeholder="noch nicht eingetragen"') + '>',
+        'Aus den Stammdaten im Erstgespräch, Feld „Akz. LWL“.' + (k.akz ? '' : ' Dort eintragen, sonst bleibt die Stelle in der Rechnung frei.')) + '</div>';
+    if (alt.length) h += '<div class="note warn"><span>' + (alt.length === 1 ? 'Eine Sitzung steht' : alt.length + ' Sitzungen stehen') + ' schon auf einer Rechnung: ' +
+      alt.map(function (s) { return esc(fDate(s.date)) + ' (Nr. ' + esc(s.rechnung.nr) + ')'; }).join(', ') + '.</span></div>';
+    h += '<div class="re-wrap"><table class="re-prev"><thead><tr><th scope="col">Datum</th><th scope="col">Durchführungsort</th><th scope="col" class="num">Stunden</th><th scope="col" class="num">Fahrtkosten</th><th scope="col" class="num">Betrag</th></tr></thead><tbody>' +
+      p.rows.map(function (r) {
+        return '<tr><td>' + esc(r.datum) + '</td><td>' + r.ort.map(esc).join('<br>') + '</td><td class="num">' + esc(r.stdText) + '</td><td class="num">' + r.fahrtText.map(esc).join('<br>') + '</td><td class="num">' + esc(r.betragText) + '</td></tr>';
+      }).join('') + '</tbody><tfoot><tr><th scope="row" colspan="4">Gesamtbetrag</th><td class="num"><b>' + esc(p.summeText) + '</b></td></tr></tfoot></table></div>';
+    var std = function (n) { return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(n) + ' Std.'; };
+    h += p.kg.total
+      ? '<dl class="facts"><div><dt>Gesamtes Stundenkontingent</dt><dd>' + esc(std(p.kg.total)) + '</dd></div>' +
+        '<div><dt>Absolvierte Therapiestunden</dt><dd>' + esc(std(p.kg.abs)) + '</dd></div>' +
+        '<div><dt>Aktuelles Stundenkontingent</dt><dd>' + esc(std(p.kg.rest)) + '</dd></div></dl>'
+      : '<p class="small muted">Für diese Akte ist kein Stundenkontingent hinterlegt. Die Rechnung nennt dann keines.</p>';
+    h += '<p class="small muted">' + esc(p.hinweis) + '</p><p class="small" id="f-re-msg" role="alert"></p>';
+    return h;
+  }
+
+  function viewBackup() {
+    var real = realClients().length;
+    var h = '<div class="wrap"><header class="chead"><div class="chead-row"><button class="link" data-act="go" data-view="home">‹ Alle Akten</button></div><h2>Einstellungen</h2></header>';
+    h += '<p class="small muted">Fassung vom ' + FASSUNG + '</p>';
+    h += '<p id="bk-msg" role="status"></p>';
+    h += '<section class="panel"><h3>Zahlencode</h3>';
+    if (!(window.crypto && crypto.subtle)) {
+      h += '<p class="small muted">In dieser Ansicht lässt sich kein Zahlencode einrichten.</p>';
+    } else if (!cryptoKey) {
+      h += '<p class="small muted">Mit einem Zahlencode wird das Sitzungsbuch bei jedem Öffnen gesperrt, und die Einträge werden verschlüsselt auf dem Gerät gespeichert.</p>' +
+        pinField('pin-new', 'Neuer Zahlencode', '4 bis 12 Ziffern. Mehr Ziffern schützen besser.') + pinField('pin-new2', 'Zahlencode wiederholen') +
+        '<button class="btn primary block" data-act="pin-set">Zahlencode festlegen</button>' +
+        '<p class="small muted">Ohne den Code lassen sich die Einträge auf dem Gerät nicht mehr öffnen. Dann hilft nur eine PDF-Sicherung.</p>';
+    } else {
+      h += '<p><span class="pill ok">aktiv</span></p><p class="small muted">Gesperrt wird bei jedem Öffnen und nach fünf Minuten im Hintergrund.</p>' +
+        '<button class="btn block" data-act="lock">Jetzt sperren</button>' +
+        pinField('pin-cur', 'Aktueller Zahlencode') + pinField('pin-new', 'Neuer Zahlencode', '4 bis 12 Ziffern.') + pinField('pin-new2', 'Neuen Zahlencode wiederholen') +
+        '<button class="btn block" data-act="pin-set">Zahlencode ändern</button>' +
+        '<button class="btn danger block" data-act="pin-remove">Zahlencode entfernen</button>' +
+        '<p class="small muted">Zum Entfernen genügt der aktuelle Zahlencode. Die Einträge werden danach wieder unverschlüsselt gespeichert.</p>';
+    }
+    h += '</section>';
+    h += '<p>Alle Einträge liegen nur in diesem Browser auf diesem Gerät. Eine Sicherung als PDF schützt vor Verlust. Sie ist lesbar und druckbar und lässt sich auf jedem Gerät wieder einlesen.</p>';
+    h += '<p class="small muted">' + (S.lastBackup ? 'Letzte Sicherung: ' + esc(fDate(S.lastBackup.slice(0, 10))) : 'Bisher wurde keine Sicherungsdatei erstellt.') + '</p>';
+    h += '<section class="panel"><h3>Sicherung als PDF</h3>' +
+      '<button class="btn primary block" data-act="export">PDF speichern</button>' +
+      '<p class="small muted">Die PDF enthält alle Akten als lesbares Dokument und zugleich die Daten zum Wiedereinlesen. Sie ist nicht verschlüsselt, auch nicht mit Zahlencode: Wer die Datei hat, kann sie lesen.</p>' +
+      '<div class="field" id="bk-outwrap" hidden><label for="bk-out">Inhalt der Sicherung</label><textarea id="bk-out" readonly></textarea>' +
+      '<span class="hint">Die PDF ließ sich hier nicht speichern. Der Inhalt kann kopiert, als Text aufbewahrt und später unter „Sicherung einlesen“ eingefügt werden.</span>' +
+      '<button class="btn" data-act="copy">Inhalt kopieren</button></div></section>';
+    h += '<section class="panel"><h3>Sicherung einlesen</h3>' +
+      '<div class="field"><label for="bk-file">Sicherungs-PDF</label><input type="file" id="bk-file" accept=".pdf,.json,application/pdf,application/json"></div>' +
+      '<div class="field"><label for="bk-in">Oder kopierten Inhalt einfügen</label><textarea id="bk-in" style="min-height:4.5rem"></textarea></div>' +
+      '<div class="field" id="bk-inpasswrap" hidden><label for="bk-inpass">Passwort der Datei</label><input type="password" id="bk-inpass" autocomplete="off"><span class="hint">Diese ältere Sicherungsdatei ist verschlüsselt.</span></div>' +
+      '<button class="btn block" data-act="import">Einlesen</button>' +
+      '<p class="small muted">Das Einlesen führt den Stand der Datei mit den Einträgen auf diesem Gerät zusammen. Je Eintrag gilt der jüngere Stand. Nichts wird ersetzt, nichts gelöscht.</p></section>';
+    h += '<section class="panel"><h3>Gerät leeren</h3><p class="small muted">Entfernt alle ' + real + (real === 1 ? ' Akte' : ' Akten') + ' von diesem Gerät. Bereits erstellte Sicherungsdateien und der Zahlencode bleiben erhalten.</p>' +
+      '<button class="btn danger block" data-act="wipe">Alle Einträge löschen</button></section>';
+    return h + '</div>';
+  }
+
+  /* ---------- forms ---------- */
+  function field(label, id, inner, hint) {
+    return '<div class="field"><label for="' + id + '">' + label + '</label>' + inner + (hint ? '<span class="hint">' + hint + '</span>' : '') + '</div>';
+  }
+  var DURATIONS = [30, 60, 90, 120, 150];
+  function durations(current) {
+    var list = DURATIONS.slice(), c = +current;
+    if (c > 0 && list.indexOf(c) < 0) { list.push(c); list.sort(function (a, b) { return a - b; }); }
+    return list;
+  }
+  function findItem(c, type, id) {
+    var key = { session: 'sessions', mood: 'moods', task: 'tasks', topic: 'topics' }[type];
+    return (c && key) ? c[key].find(function (x) { return x.id === id; }) || null : null;
+  }
+
+  function viewForm() {
+    var f = ui.form, c = client(), it = null, title = '', body = '', canDelete = false;
+    if (f.type === 'client') {
+      it = f.id ? S.clients.find(function (x) { return x.id === f.id; }) : null;
+      /* Am Computer kommt der Name aus dem Namen des Ordners. Anlegen,
+         Umbenennen, Archivieren und Löschen macht der Aktenschrank. */
+      if (inFolder()) {
+        title = 'Rahmen und Hinweise';
+        body = field('Rahmen und Hinweise', 'f-note', '<textarea id="f-note" name="note">' + esc(it ? it.note : '') + '</textarea>', 'Zum Beispiel Kostenträger, Rhythmus, bevorzugte Form der Kommunikation.');
+      } else {
+        title = it ? 'Akte bearbeiten' : 'Neue Akte'; canDelete = !!it;
+        body = field('Name oder Kürzel', 'f-name', '<input type="text" id="f-name" name="name" required maxlength="80" value="' + esc(it ? it.name : '') + '">', 'Ein Kürzel schützt die Person, falls jemand auf das Display schaut.') +
+          field('Rahmen und Hinweise', 'f-note', '<textarea id="f-note" name="note">' + esc(it ? it.note : '') + '</textarea>', 'Zum Beispiel Kostenträger, Rhythmus, bevorzugte Form der Kommunikation.');
+      }
+    } else if (f.type === 'quota') {
+      var q = c.quota; title = 'Stundenkontingent';
+      body = '<div class="two">' + field('Bewilligte Stunden', 'f-hours', '<input type="number" id="f-hours" name="hours" min="0" step="0.25" inputmode="decimal" value="' + esc(q.hours || '') + '">') +
+        field('Eine Stunde sind', 'f-unit', '<select id="f-unit" name="unit">' + [60, 50, 45].map(function (u) { return '<option value="' + u + '"' + (q.unit === u ? ' selected' : '') + '>' + u + ' Minuten</option>'; }).join('') + '</select>') + '</div>' +
+        '<div class="two">' + field('Zeitraum von', 'f-from', '<input type="date" id="f-from" name="from" value="' + esc(q.from) + '">') + field('bis', 'f-to', '<input type="date" id="f-to" name="to" value="' + esc(q.to) + '">') + '</div>' +
+        '<p class="small muted">Angerechnet werden alle Sitzungen im Zeitraum, bei denen „Auf das Kontingent anrechnen“ gesetzt ist. Ohne Zeitraum zählen alle Sitzungen.</p>';
+    } else if (f.type === 'session') {
+      it = findItem(c, 'session', f.id); title = it ? 'Sitzung bearbeiten' : 'Neue Sitzung'; canDelete = !!it;
+      var lastS = c.sessions.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; })[0];
+      var min = it ? it.min : (lastS ? lastS.min : 60), form = it ? it.form : (lastS ? lastS.form : 'Präsenz');
+      var open = c.topics.filter(function (x) { return !x.done; });
+      var orte = [];
+      c.sessions.forEach(function (x) { var o = String(x.ort || '').trim(); if (o && orte.indexOf(o) < 0) orte.push(o); });
+      body = field('Datum', 'f-date', '<input type="date" id="f-date" name="date" required value="' + esc(it ? it.date : today()) + '">') +
+        '<div class="two">' + field('Dauer', 'f-min', '<select id="f-min" name="min">' + durations(min).map(function (m) { return '<option value="' + m + '"' + (+min === m ? ' selected' : '') + '>' + m + ' Minuten</option>'; }).join('') + '</select>') +
+        field('Form', 'f-form', '<select id="f-form" name="form">' + ['Präsenz', 'Video', 'Telefon', 'Schriftlich'].map(function (o) { return '<option' + (form === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>') + '</div>' +
+        field('Ort', 'f-ort', '<input type="text" id="f-ort" name="ort" maxlength="120" list="f-ort-list" value="' + esc(it ? it.ort || '' : '') + '">' +
+          '<datalist id="f-ort-list">' + orte.map(function (o) { return '<option value="' + esc(o) + '"></option>'; }).join('') + '</datalist>',
+          'Ort und gefahrene Kilometer, zum Beispiel „Hausbesuch Lübeck, 24 km“.') +
+        '<label class="inline-check" for="f-counts"><input type="checkbox" id="f-counts" name="counts"' + (!it || it.counts !== false ? ' checked' : '') + '><span>Auf das Kontingent anrechnen</span></label>' +
+        field('Themen', 'f-topics', '<input type="text" id="f-topics" name="topics" maxlength="200" value="' + esc(it ? it.topics : '') + '">') +
+        (open.length ? '<fieldset class="field"><legend>Vorgemerkte Themen, die besprochen wurden</legend>' + open.map(function (t) { return '<label class="inline-check" for="f-tp-' + esc(t.id) + '"><input type="checkbox" id="f-tp-' + esc(t.id) + '" name="discussed" value="' + esc(t.id) + '"><span>' + esc(t.text) + '</span></label>'; }).join('') + '</fieldset>' : '') +
+        field('Notizen', 'f-notes', '<textarea id="f-notes" name="notes">' + esc(it ? it.notes : '') + '</textarea>') +
+        field('Vereinbarungen', 'f-agree', '<textarea id="f-agree" name="agree" style="min-height:5rem">' + esc(it ? it.agree : '') + '</textarea>');
+    } else if (f.type === 'invoice') {
+      title = 'Rechnung erstellen';
+      body = invoiceForm(c);
+    } else if (f.type === 'topic') {
+      it = findItem(c, 'topic', f.id); title = it ? 'Thema bearbeiten' : 'Thema vormerken'; canDelete = !!it;
+      body = field('Thema für die nächste Sitzung', 'f-text', '<textarea id="f-text" name="text" required style="min-height:5rem">' + esc(it ? it.text : '') + '</textarea>');
+    }
+    return '<form class="wrap" id="form" autocomplete="off"><div class="fhead"><button type="button" class="btn" data-act="cancel">Abbrechen</button><strong>' + title + '</strong><button type="submit" class="btn primary">' + (f.type === 'invoice' ? 'Erstellen' : 'Speichern') + '</button></div>' +
+      body + (f.type === 'client' && it ? '<button type="button" class="btn block" data-act="' + (it.archived ? 'unarchive' : 'archive') + '" data-id="' + esc(it.id) + '">' + (it.archived ? 'Akte wiederherstellen' : 'Akte archivieren') + '</button>' : '') +
+      (canDelete ? '<button type="button" class="btn danger block" data-act="del">' + (f.type === 'client' ? 'Akte in den Papierkorb legen' : 'Eintrag löschen') + '</button>' : '') + '</form>';
+  }
+
+  function submitForm(formEl) {
+    var f = ui.form, c = client(), d = new FormData(formEl);
+    function v(k) { return String(d.get(k) || '').trim(); }
+    var it;
+    if (f.type === 'client') {
+      if (inFolder()) {
+        it = S.clients[0];
+        if (it) { it.note = v('note'); stamp(it); }
+        save(); closeForm(); toast('Gespeichert');
+        return;
+      }
+      if (!v('name')) return;
+      it = f.id ? S.clients.find(function (x) { return x.id === f.id; }) : null;
+      if (it) { it.name = v('name'); it.note = v('note'); stamp(it); }
+      else {
+        it = stamp({ id: uid(), name: v('name'), note: v('note'), quota: { hours: 0, unit: 60, from: '', to: '' }, sessions: [], moods: [], tasks: [], topics: [] });
+        S.clients.push(it); ui.view = 'client'; ui.clientId = it.id; ui.tab = 'quota'; ui.scrollY = 0;
+      }
+    } else if (f.type === 'quota') {
+      c.quota = stamp({ hours: Math.max(0, parseFloat(v('hours').replace(',', '.')) || 0), unit: +v('unit') || 60, from: v('from'), to: v('to') });
+    } else if (f.type === 'session') {
+      if (!v('date')) return;
+      var data = { date: v('date'), min: Math.max(0, parseInt(v('min'), 10) || 0), form: v('form') || 'Präsenz', counts: d.get('counts') != null, ort: v('ort'), topics: v('topics'), notes: v('notes'), agree: v('agree') };
+      it = findItem(c, 'session', f.id);
+      if (it) stamp(Object.assign(it, data)); else { data.id = uid(); c.sessions.push(stamp(data)); }
+      d.getAll('discussed').forEach(function (id) { var t = findItem(c, 'topic', id); if (t) { t.done = true; t.doneAt = data.date; stamp(t); } });
+    } else if (f.type === 'invoice') {
+      submitInvoice(formEl, c, { nr: v('nr'), datum: v('rdate') || today(), name: v('rname') });
+      return;
+    } else if (f.type === 'topic') {
+      if (!v('text')) return;
+      it = findItem(c, 'topic', f.id);
+      if (it) { it.text = v('text'); stamp(it); } else c.topics.push(stamp({ id: uid(), text: v('text'), done: false, created: today() }));
+    }
+    save(); closeForm(); toast(storageOk ? 'Gespeichert' : 'Nur vorübergehend gespeichert');
+  }
+
+  function submitInvoice(formEl, c, kopf) {
+    var pick = invoicePick(c), btn = formEl.querySelector('button[type="submit"]'), msg = document.getElementById('f-re-msg');
+    if (!pick.length || !canInvoice()) { closeForm(); return; }
+    if (!kopf.nr) return;
+    btn.disabled = true; btn.textContent = 'Wird erstellt …'; if (msg) msg.textContent = '';
+    Promise.resolve().then(function () { return folderIO.rechnung(c, pick, kopf); }).then(function (res) {
+      pick.forEach(function (s) { s.rechnung = { nr: kopf.nr, datum: kopf.datum }; s.tick = false; stamp(s); });
+      ui.reDone = { clientId: c.id, nr: kopf.nr, file: res && res.file };
+      save(); closeForm(); toast('Rechnung Nr. ' + kopf.nr + ' gespeichert');
+    }, function (e) {
+      btn.disabled = false; btn.textContent = 'Erstellen';
+      var m = document.getElementById('f-re-msg'); if (m) m.textContent = (e && e.message) || String(e);
+    });
+  }
+
+  /* ---------- backup ---------- */
+  function b64(bytes) { var s = ''; for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192)); return btoa(s); }
+  function unb64(str) { var bin = atob(str), out = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+  var ITER = 310000;
+  function deriveKey(pass, salt, iter) {
+    return crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']).then(function (base) {
+      return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+  }
+  function buildBackup(clients) {
+    var daten = clients ? { clients: clients, lastBackup: new Date().toISOString() } : S;
+    return JSON.stringify({ format: 'sitzungsbuch-sicherung', version: 1, erstellt: new Date().toISOString(), verschluesselt: false, daten: daten });
+  }
+  /* Jüngste Änderung irgendwo in einer Akte */
+  function lastChange(c) {
+    var m = String(c.mod || '');
+    if (c.quota && newer(c.quota.mod, m)) m = c.quota.mod;
+    ['sessions', 'topics', 'moods', 'tasks'].forEach(function (k) {
+      (c[k] || []).forEach(function (x) { if (newer(x.mod, m)) m = x.mod; });
+    });
+    return m;
+  }
+  /* Eingelesene Akten in den eigenen Stand einarbeiten, je Eintrag der
+     jüngere Stand. Nichts wird ersetzt, nichts gelöscht. */
+  function mergeInto(incoming) {
+    var mine = {}, order = [], added = 0, changed = 0, skipped = 0, gone = {};
+    var bin = {};
+    (S.deletedClients || []).forEach(function (x) { gone[x.id] = x.at; });
+    (S.trash || []).forEach(function (x) { bin[x.c.id] = x; });
+    S.clients.forEach(function (c) { mine[c.id] = c; order.push(c.id); });
+    incoming.forEach(function (t) {
+      var m = mine[t.id];
+      /* Liegt die Akte im Papierkorb, bleibt sie dort. Neue Einträge kommen
+         in ihre Kopie, damit sie beim Wiederherstellen vollständig ist. */
+      if (!m && bin[t.id]) { bin[t.id].c = mergeClient(bin[t.id].c, t); skipped += 1; return; }
+      if (!m && gone[t.id] != null) {
+        /* Endgültig gelöscht bleibt gelöscht, außer die Akte wurde
+           danach am anderen Gerät noch geändert. */
+        if (!newer(lastChange(t), gone[t.id])) { skipped += 1; return; }
+        S.deletedClients = S.deletedClients.filter(function (x) { return x.id !== t.id; });
+      }
+      if (!m) { mine[t.id] = t; order.push(t.id); added += 1; return; }
+      var merged = mergeClient(m, t);
+      if (mergeCount(m, merged)) changed += 1;
+      mine[t.id] = merged;
+    });
+    S.clients = order.map(function (id) { return mine[id]; });
+    S = normalize(S);
+    return { added: added, changed: changed, skipped: skipped };
+  }
+  async function readBackup(text, pass) {
+    var o;
+    try { o = JSON.parse(text); } catch (e) { throw new Error('Das ist keine Sicherungsdatei des Sitzungsbuchs.'); }
+    if (!o || o.format !== 'sitzungsbuch-sicherung') throw new Error('Das ist keine Sicherungsdatei des Sitzungsbuchs.');
+    if (!o.verschluesselt) { if (!o.daten || !Array.isArray(o.daten.clients)) throw new Error('Die Datei enthält keine Akten.'); return o.daten; }
+    if (!pass) { var need = new Error('Diese Datei ist verschlüsselt. Bitte das Passwort eintragen und erneut einlesen.'); need.needPass = true; throw need; }
+    try {
+      var key = await deriveKey(pass, unb64(o.salt), +o.durchlaeufe || ITER);
+      var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(o.iv) }, key, unb64(o.daten));
+      return JSON.parse(new TextDecoder().decode(plain));
+    } catch (e) { throw new Error('Das Passwort passt nicht zu dieser Datei.'); }
+  }
+  function bkMsg(t) { var el = document.getElementById('bk-msg'); if (el) { el.textContent = t; el.scrollIntoView({ block: 'nearest' }); } }
+  function showOut(text) {
+    var w = document.getElementById('bk-outwrap'), o = document.getElementById('bk-out');
+    if (w && o) { o.value = text; w.hidden = false; }
+  }
+  /* Herunterladen ohne Hilfe der Umgebung: funktioniert in jedem Browser. */
+  function saveViaBrowser(bytes, name) {
+    try {
+      var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      var a = document.createElement('a');
+      a.href = url; a.download = name; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      return true;
+    } catch (e) { return false; }
+  }
+  async function doExport() {
+    var text = buildBackup(), bytes;
+    try { bytes = makePdf(text); }
+    catch (e) { showOut(text); bkMsg('Die PDF ließ sich nicht erstellen. Der Inhalt steht unten zum Kopieren bereit.'); return; }
+    var name = 'sitzungsbuch-' + today() + '.pdf';
+    var dl = await dlPromise;
+    /* In einem gewöhnlichen Browser, also auch am Handy, lädt die Datei
+       über den normalen Weg herunter. */
+    if (!dl) {
+      if (saveViaBrowser(bytes, name)) {
+        S.lastBackup = new Date().toISOString(); save(); render();
+        bkMsg('Die Sicherung „' + name + '“ wurde heruntergeladen. Legen Sie sie in den Ordner „_Sitzungsbuch“, zum Beispiel über Dropbox.');
+      } else {
+        showOut(text);
+        bkMsg('Speichern als Datei ist in dieser Ansicht nicht möglich. Der Inhalt steht unten zum Kopieren bereit.');
+      }
+      return;
+    }
+    try {
+      await dl.save({ filename: name, data: bytes });
+      S.lastBackup = new Date().toISOString(); save(); render();
+      bkMsg('Die PDF wurde zum Speichern übergeben.');
+    } catch (err) {
+      var code = err && err.code;
+      if (code === 'declined') bkMsg('Es wurde nichts gespeichert.');
+      else if (code === 'rate_limited') bkMsg('Es ist noch ein Speichern-Dialog offen. Bitte kurz warten und erneut versuchen.');
+      else { showOut(text); bkMsg('PDF-Dateien lassen sich in dieser Ansicht nicht speichern. Der Inhalt steht unten zum Kopieren bereit.'); }
+    }
+  }
+  async function doImport(btn) {
+    var fileEl = document.getElementById('bk-file'), pasted = (document.getElementById('bk-in') || {}).value || '';
+    var pass = (document.getElementById('bk-inpass') || {}).value || '';
+    var file = fileEl && fileEl.files && fileEl.files[0];
+    if (!file && !pasted.trim()) { bkMsg('Bitte zuerst eine Sicherungsdatei wählen oder ihren Inhalt einfügen.'); return; }
+    /* Kein Nachfragen mehr: das Einlesen führt zusammen und löscht nichts. */
+    try {
+      var text = pasted;
+      if (file) {
+        var buf = new Uint8Array(await file.arrayBuffer());
+        if (buf.length > 4 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) text = dataFromPdf(buf);
+        else text = new TextDecoder().decode(buf);
+      }
+      var data = await readBackup(text, pass);
+      var res = mergeInto(normalize(data).clients);
+      save(); ui.view = 'home'; go();
+      var parts = [];
+      if (res.added) parts.push(res.added + (res.added === 1 ? ' Akte neu' : ' Akten neu'));
+      if (res.changed) parts.push(res.changed + (res.changed === 1 ? ' Akte ergänzt' : ' Akten ergänzt'));
+      if (res.skipped) parts.push(res.skipped + (res.skipped === 1 ? ' gelöschte Akte nicht übernommen' : ' gelöschte Akten nicht übernommen'));
+      toast(parts.length ? parts.join(', ') : 'Nichts Neues in der Datei');
+    } catch (e) {
+      delete btn.dataset.armed; btn.classList.remove('danger'); btn.textContent = 'Einlesen';
+      if (e && e.needPass) { var pw = document.getElementById('bk-inpasswrap'); if (pw) pw.hidden = false; }
+      bkMsg((e && e.message) || 'Die Datei ließ sich nicht einlesen.');
+    }
+  }
+
+  /* ---------- PDF ---------- */
+  var LOGO = { w: 480, h: 346, b64: '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' };
+  var HW = {};
+  (function () {
+    var w = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015,
+      667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333,
+      556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584];
+    for (var i = 0; i < w.length; i++) HW[32 + i] = w[i];
+    var more = { 0x80: 556, 0x84: 333, 0x85: 1000, 0x91: 222, 0x92: 222, 0x93: 333, 0x94: 333, 0x95: 350, 0x96: 556, 0x97: 1000, 0xB7: 278, 0xC4: 667, 0xD6: 778, 0xDC: 722, 0xDF: 611, 0xE4: 556, 0xF6: 556, 0xFC: 556, 0xE9: 556, 0xE8: 556, 0xE0: 556, 0xE1: 556 };
+    Object.keys(more).forEach(function (k) { HW[k] = more[k]; });
+  })();
+  var CP = { 0x20AC: 0x80, 0x201A: 0x82, 0x201E: 0x84, 0x2026: 0x85, 0x2018: 0x91, 0x2019: 0x92, 0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97, 0x2039: 0x8B, 0x203A: 0x9B, 0xA0: 0x20, 0x202F: 0x20, 0x2009: 0x20 };
+  function ansi(str) {
+    var out = '';
+    Array.from(String(str == null ? '' : str)).forEach(function (ch) {
+      var c = ch.codePointAt(0);
+      if (c === 9) c = 32;
+      if (c === 10) { out += '\n'; return; }
+      if (c < 32) return;
+      if (CP[c]) out += String.fromCharCode(CP[c]);
+      else if (c < 127 || (c > 160 && c < 256)) out += String.fromCharCode(c);
+      else out += '?';
+    });
+    return out;
+  }
+  function textWidth(s, size, bold) {
+    var w = 0;
+    for (var i = 0; i < s.length; i++) w += HW[s.charCodeAt(i)] || 600;
+    return w / 1000 * size * (bold ? 1.08 : 1);
+  }
+  function wrapText(s, size, bold, maxW) {
+    var out = [];
+    s.split('\n').forEach(function (para) {
+      var line = '';
+      para.split(' ').forEach(function (word) {
+        var t = line ? line + ' ' + word : word;
+        if (textWidth(t, size, bold) <= maxW) { line = t; return; }
+        if (line) { out.push(line); line = ''; }
+        while (textWidth(word, size, bold) > maxW) {
+          var k = word.length;
+          while (k > 1 && textWidth(word.slice(0, k), size, bold) > maxW) k--;
+          out.push(word.slice(0, k)); word = word.slice(k);
+        }
+        line = word;
+      });
+      out.push(line);
+    });
+    return out;
+  }
+  function makePdf(payloadText) {
+    var PW = 595.28, PH = 841.89, ML = 56, MR = 56, TOP = PH - 96, BOT = 64, W = PW - ML - MR;
+    var pages = [], ops = null, y = 0;
+    function pesc(t) { return t.replace(/[\\()]/g, '\\$&'); }
+    function newPage() { ops = []; pages.push(ops); y = TOP; }
+    function need(h) { if (y - h < BOT) newPage(); }
+    function put(target, t, x, yy, size, bold, gray) {
+      target.push('BT /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + gray + ' g ' + x.toFixed(2) + ' ' + yy.toFixed(2) + ' Td (' + pesc(t) + ') Tj ET');
+    }
+    function text(str, o) {
+      o = o || {};
+      var size = o.size || 10, bold = !!o.bold, gray = o.gray == null ? 0 : o.gray, indent = o.indent || 0, lh = size * 1.42;
+      wrapText(ansi(str), size, bold, W - indent).forEach(function (l) { need(lh); y -= lh; put(ops, l, ML + indent, y, size, bold, gray); });
+      y -= o.after || 0;
+    }
+    function rule() { need(14); y -= 8; ops.push('0.75 G 0.6 w ' + ML + ' ' + y.toFixed(2) + ' m ' + (PW - MR).toFixed(2) + ' ' + y.toFixed(2) + ' l S'); y -= 4; }
+    function head(t) { need(48); y -= 10; text(t, { size: 12, bold: true, after: 2 }); }
+    function labeled(label, val) { need(30); text(label, { size: 8.5, bold: true, gray: 0.35 }); text(val, { size: 10, after: 4 }); }
+
+    var stand = fDate(today(), { day: 'numeric', month: 'long', year: 'numeric' });
+    var clients = S.clients.slice().sort(function (a, b) { return a.name.localeCompare(b.name, 'de'); });
+    newPage();
+    text('Sitzungsbuch', { size: 22, bold: true, after: 2 });
+    text('Sicherung vom ' + stand + ' · ' + clients.length + (clients.length === 1 ? ' Akte' : ' Akten'), { size: 10, gray: 0.35, after: 4 });
+    if (!clients.length) text('Es sind keine Akten angelegt.', { size: 10 });
+    clients.forEach(function (c, i) {
+      if (i) newPage(); else rule();
+      y -= 6;
+      text(c.name + (c.example ? ' (Beispiel)' : '') + (c.archived ? ' (archiviert)' : ''), { size: 16, bold: true, after: 2 });
+      if (c.note) text(c.note, { size: 10, gray: 0.35, after: 2 });
+
+      var q = quotaStats(c), k = c.quota;
+      head('Stundenkontingent');
+      if (!q.total) text('Kein Kontingent hinterlegt.', { size: 10 });
+      else {
+        text('Bewilligt ' + nf.format(q.total) + ' Std. · Verbraucht ' + nf.format(q.used) + ' Std. · Offen ' + nf.format(q.left) + ' Std.', { size: 10 });
+        text(((k.from || k.to) ? 'Zeitraum ' + (k.from ? fDate(k.from) : 'offen') + ' bis ' + (k.to ? fDate(k.to) : 'offen') : 'Ohne festen Zeitraum') + ' · eine Stunde entspricht ' + q.unit + ' Minuten', { size: 10, gray: 0.35 });
+      }
+
+      var open = c.topics.filter(function (t) { return !t.done; }), done = c.topics.filter(function (t) { return t.done; });
+      if (open.length) { head('Vorgemerkte Themen'); open.forEach(function (t) { text('-  ' + t.text, { size: 10, indent: 4 }); }); }
+      if (done.length) { head('Besprochene Themen'); done.forEach(function (t) { text('-  ' + t.text + (t.doneAt ? ' (' + fDate(t.doneAt) + ')' : ''), { size: 10, indent: 4 }); }); }
+
+      var list = c.sessions.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+      head('Sitzungen (' + list.length + ')');
+      if (!list.length) text('Noch keine Sitzung eingetragen.', { size: 10 });
+      list.forEach(function (s) {
+        need(74); y -= 8;
+        text(fDay(s.date), { size: 11, bold: true });
+        text((s.min || 0) + ' Minuten · ' + (s.form || 'Präsenz') + ' · ' + (s.counts === false ? 'nicht angerechnet' : 'angerechnet'), { size: 9, gray: 0.35, after: 3 });
+        if (s.ort) labeled('Ort', s.ort);
+        if (s.topics) labeled('Themen', s.topics);
+        if (s.notes) labeled('Notizen', s.notes);
+        if (s.agree) labeled('Vereinbarungen', s.agree);
+      });
+    });
+
+    var objs = [];
+    function add(body) { objs.push(body); return objs.length; }
+    var catalog = add(''), pagesObj = add('');
+    var f1 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+    var f2 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+    var jpg = atob(LOGO.b64);
+    var img = add('<< /Type /XObject /Subtype /Image /Width ' + LOGO.w + ' /Height ' + LOGO.h + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpg.length + ' >>\nstream\n' + jpg + '\nendstream');
+    var now = new Date();
+    var stamp = 'D:' + now.getFullYear() + z(now.getMonth() + 1) + z(now.getDate()) + z(now.getHours()) + z(now.getMinutes()) + z(now.getSeconds());
+    var info = add('<< /Title (Sitzungsbuch Sicherung) /Creator (Sitzungsbuch) /Producer (Sitzungsbuch) /CreationDate (' + stamp + ') /SitzungsbuchDaten (SB1:' + b64(new TextEncoder().encode(payloadText)) + ') >>');
+    var LW = 62, LH = LW * LOGO.h / LOGO.w, kids = [];
+    pages.forEach(function (pageOps, i) {
+      var extra = ['q ' + LW + ' 0 0 ' + LH.toFixed(2) + ' ' + (PW - MR - LW).toFixed(2) + ' ' + (PH - 34 - LH).toFixed(2) + ' cm /Im1 Do Q'];
+      var left = ansi('Sitzungsbuch · Sicherung vom ' + stand), right = ansi('Seite ' + (i + 1) + ' von ' + pages.length);
+      put(extra, left, ML, 36, 8, false, 0.35);
+      put(extra, right, PW - MR - textWidth(right, 8, false), 36, 8, false, 0.35);
+      var stream = extra.concat(pageOps).join('\n');
+      var content = add('<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream');
+      var page = add('<< /Type /Page /Parent ' + pagesObj + ' 0 R /MediaBox [0 0 ' + PW + ' ' + PH + '] /Resources << /Font << /F1 ' + f1 + ' 0 R /F2 ' + f2 + ' 0 R >> /XObject << /Im1 ' + img + ' 0 R >> >> /Contents ' + content + ' 0 R >>');
+      kids.push(page + ' 0 R');
+    });
+    objs[catalog - 1] = '<< /Type /Catalog /Pages ' + pagesObj + ' 0 R /Lang (de-DE) >>';
+    objs[pagesObj - 1] = '<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + kids.length + ' >>';
+    var out = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n', offs = [];
+    objs.forEach(function (body, i) { offs.push(out.length); out += (i + 1) + ' 0 obj\n' + body + '\nendobj\n'; });
+    var xref = out.length;
+    out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n' + offs.map(function (o) { return String(o).padStart(10, '0') + ' 00000 n \n'; }).join('') +
+      'trailer\n<< /Size ' + (objs.length + 1) + ' /Root ' + catalog + ' 0 R /Info ' + info + ' 0 R >>\nstartxref\n' + xref + '\n%%EOF\n';
+    var bytes = new Uint8Array(out.length);
+    for (var n = 0; n < out.length; n++) bytes[n] = out.charCodeAt(n) & 255;
+    return bytes;
+  }
+  function dataFromPdf(buf) {
+    var str = '';
+    for (var i = 0; i < buf.length; i += 8192) str += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+    var m = /SB1:([A-Za-z0-9+\/=]+)/.exec(str);
+    if (!m) throw new Error('Diese PDF enthält keine Sicherungsdaten des Sitzungsbuchs.');
+    return new TextDecoder().decode(unb64(m[1]));
+  }
+
+  /* ---------- lock ---------- */
+  var hiddenAt = 0;   // lockEl wird beim Einhängen gesetzt
+  function pinField(id, label, hint) {
+    return field(label, id, '<input type="password" id="' + id + '" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off">', hint);
+  }
+  function showLock() {
+    isLocked = true; app.hidden = true; lockEl.hidden = false;
+    lockEl.innerHTML = '<form class="wrap lockwrap" id="lockform" autocomplete="off"><div><h1>Sitzungsbuch</h1><p class="muted">Gesperrt. Zum Öffnen den Zahlencode eingeben.</p><p class="small muted">Fassung vom ' + FASSUNG + '</p></div>' +
+      pinField('lock-pin', 'Zahlencode') + '<p id="lock-msg" role="alert"></p>' +
+      '<button type="submit" class="btn primary block" id="lock-go">Öffnen</button>' +
+      '<button type="button" class="link" data-act="forgot">Code vergessen</button>' +
+      '<div class="note warn" id="forgot" hidden><span>Ohne den Zahlencode lassen sich die Einträge nicht öffnen. Das Gerät lässt sich leeren und anschließend aus einer PDF-Sicherung neu befüllen.</span>' +
+      '<button type="button" class="btn danger block" data-act="forgot-wipe">Alle Einträge auf diesem Gerät löschen</button></div></form>';
+    window.scrollTo(0, 0);
+    var input = document.getElementById('lock-pin'); if (input) input.focus();
+  }
+  function hideLock() { isLocked = false; lockEl.hidden = true; lockEl.innerHTML = ''; app.hidden = false; }
+  async function doUnlock() {
+    var input = document.getElementById('lock-pin'), msg = document.getElementById('lock-msg'), btn = document.getElementById('lock-go');
+    var pin = input ? input.value : '';
+    if (!pin) return;
+    btn.disabled = true; btn.textContent = 'Wird geöffnet …'; msg.textContent = '';
+    try {
+      var r = await openWith(pin);
+      cryptoKey = r.key; lockMeta = r.meta;
+      /* Beim Öffnen der Seite: den entschlüsselten Stand laden und zeigen.
+         Nach einer Sperre im laufenden Betrieb ist S schon aktuell. */
+      if (pendingLoad || !S) { S = normalize(r.data); pendingLoad = false; }
+      hideLock(); go();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Öffnen'; msg.textContent = 'Der Zahlencode stimmt nicht.';
+      input.value = ''; input.focus();
+    }
+  }
+  function pinVal(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+  async function setPin() {
+    var a = pinVal('pin-new'), b = pinVal('pin-new2');
+    if (!/^[0-9]{4,12}$/.test(a)) { bkMsg('Der Zahlencode braucht 4 bis 12 Ziffern.'); return; }
+    if (a !== b) { bkMsg('Die beiden Eingaben stimmen nicht überein.'); return; }
+    if (cryptoKey) { try { await openWith(pinVal('pin-cur')); } catch (e) { bkMsg('Der aktuelle Zahlencode stimmt nicht.'); return; } }
+    try {
+      var salt = crypto.getRandomValues(new Uint8Array(16));
+      var key = await deriveKey(a, salt, ITER);
+      cryptoKey = key; lockMeta = { salt: b64(salt), iter: ITER };
+      save(); await saveChain;
+    } catch (e) { bkMsg('Der Zahlencode ließ sich nicht einrichten.'); return; }
+    render(); bkMsg(storageOk ? 'Zahlencode festgelegt. Er wird ab jetzt bei jedem Öffnen abgefragt.' : 'Speichern auf diesem Gerät ist gerade nicht möglich.');
+  }
+  async function removePin(el) {
+    try { await openWith(pinVal('pin-cur')); } catch (e) { bkMsg('Der aktuelle Zahlencode stimmt nicht.'); return; }
+    if (!armed(el, 'Zahlencode wirklich entfernen')) return;
+    await saveChain; cryptoKey = null; lockMeta = null; save();
+    render(); bkMsg('Zahlencode entfernt. Die Einträge sind wieder unverschlüsselt gespeichert.');
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) hiddenAt = Date.now();
+    else if (cryptoKey && !isLocked && hiddenAt && Date.now() - hiddenAt > 5 * 60000) showLock();
+  });
+
+  /* ---------- rendering and events ---------- */
+  function render() {
+    if (!app) return;
+    /* Am Computer gibt es nur die eine offene Akte. Aktenliste, Archiv
+       und Einstellungen sind Sache des Aktenschranks. */
+    if (inFolder() && ui.view !== 'client') ui.view = 'client';
+    try {
+      app.innerHTML = ui.form ? viewForm() : ui.view === 'client' ? viewClient() : ui.view === 'backup' ? viewBackup() : ui.view === 'archive' ? viewArchive() : ui.view === 'trash' ? viewTrash() : viewHome();
+    } catch (e) {
+      /* Nie eine leere Seite: Fehler zeigen und die Sicherung trotzdem anbieten. */
+      ui.form = null;
+      app.innerHTML = '<div class="wrap"><h1>Sitzungsbuch</h1><div class="note warn"><strong>Die Ansicht ließ sich nicht aufbauen.</strong>' +
+        '<span class="small">Die Einträge sind nicht verloren. Bitte diese Meldung an Claude weitergeben:</span>' +
+        '<span class="small" style="font-family:ui-monospace,monospace;overflow-wrap:anywhere">' + esc((e && (e.message || e)) || 'unbekannt') + ' · Fassung vom ' + FASSUNG + '</span></div>' +
+        '<p id="bk-msg" role="status"></p><button class="btn primary block" data-act="export">Sicherung als PDF speichern</button>' +
+        '<div class="field" id="bk-outwrap" hidden><label for="bk-out">Inhalt der Sicherung</label><textarea id="bk-out" readonly></textarea>' +
+        '<span class="hint">Diesen Inhalt kopieren und aufbewahren. Er lässt sich später unter „Sicherung einlesen“ einfügen.</span>' +
+        '<button class="btn" data-act="copy">Inhalt kopieren</button></div>' +
+        '<button class="btn block" data-act="go" data-view="home">Erneut versuchen</button></div>';
+    }
+  }
+  function go() { render(); if (!inFolder()) window.scrollTo(0, 0); }
+  function openForm(type, id) { ui.scrollY = window.scrollY; ui.form = { type: type, id: id || null }; go(); }
+  function closeForm() { ui.form = null; render(); window.scrollTo(0, ui.scrollY || 0); }
+  function armed(el, text) {
+    if (el.dataset.armed) return true;
+    el.dataset.armed = '1'; el.textContent = text; return false;
+  }
+
+  function archiveClient(id) {
+    var c = S.clients.find(function (x) { return x.id === id; });
+    if (!c || c.archived) return;
+    var fromForm = !!ui.form;
+    c.archived = true; c.archivedAt = today(); stamp(c); save();
+    ui.form = null; ui.view = 'home'; ui.clientId = null; ui.undo = id;
+    if (fromForm) go(); else render();
+  }
+
+  /* Akte in den Papierkorb legen. Sie bleibt dort vollständig erhalten. */
+  function deleteClient(id) {
+    var i = S.clients.findIndex(function (x) { return x.id === id; });
+    if (i < 0) return;
+    var c = S.clients[i], fromForm = !!ui.form;
+    S.clients.splice(i, 1);
+    S.trash = (S.trash || []).filter(function (t) { return t.c.id !== id; });
+    S.trash.push({ at: new Date().toISOString(), c: c });
+    save();
+    ui.form = null; ui.view = 'home'; ui.clientId = null; ui.undo = null; ui.undoDel = { id: id, i: i, name: c.name }; ui.scrollY = 0;
+    if (fromForm) go(); else render();
+  }
+  /* Aus dem Papierkorb zurück in die Übersicht, möglichst an die alte Stelle */
+  function restoreClient(id, at) {
+    var t = (S.trash || []).find(function (x) { return x.c.id === id; });
+    if (!t) return false;
+    S.trash = S.trash.filter(function (x) { return x !== t; });
+    if (!S.clients.some(function (x) { return x.id === id; })) {
+      if (at != null) S.clients.splice(Math.min(at, S.clients.length), 0, t.c); else S.clients.push(t.c);
+    }
+    S.deletedClients = (S.deletedClients || []).filter(function (x) { return x.id !== id; });
+    save();
+    return true;
+  }
+  /* Endgültig löschen: Der Vermerk hält die Akte beim Abgleich fern. */
+  function purgeClient(id) {
+    var t = (S.trash || []).find(function (x) { return x.c.id === id; });
+    if (!t) return;
+    S.trash = S.trash.filter(function (x) { return x !== t; });
+    if (!t.c.example) {
+      S.deletedClients = (S.deletedClients || []).filter(function (x) { return x.id !== id; });
+      S.deletedClients.push({ id: id, at: new Date().toISOString() });
+    }
+  }
+
+  var actions = {
+    archive: function (d) { archiveClient(d.id); },
+    undelete: function () {
+      var u = ui.undoDel; if (!u) return;
+      ui.undoDel = null;
+      restoreClient(u.id, u.i); render(); toast('Akte wiederhergestellt');
+    },
+    'trash-restore': function (d) {
+      if (restoreClient(d.id)) { render(); toast('Akte wiederhergestellt'); }
+    },
+    'trash-purge': function (d, el) {
+      if (!armed(el, 'Wirklich endgültig löschen')) return;
+      purgeClient(d.id); save(); render(); toast('Endgültig gelöscht');
+    },
+    'trash-empty': function (d, el) {
+      if (!armed(el, 'Wirklich alle endgültig löschen')) return;
+      (S.trash || []).slice().forEach(function (t) { purgeClient(t.c.id); });
+      save(); render(); toast('Papierkorb geleert');
+    },
+    unarchive: function (d) {
+      var c = S.clients.find(function (x) { return x.id === d.id; });
+      if (!c) return;
+      delete c.archived; delete c.archivedAt; ui.undo = null; stamp(c); save();
+      if (ui.form) closeForm(); else render();
+      toast('Akte wiederhergestellt');
+    },
+    go: function (d) { ui.view = d.view; go(); },
+    open: function (d) { ui.view = 'client'; ui.clientId = d.id; ui.tab = 'sessions'; go(); },
+    tab: function (d) { ui.tab = d.tab; go(); },
+    'new': function (d) { openForm(d.type, null); },
+    edit: function (d) { openForm(d.type, d.id); },
+    cancel: function () { closeForm(); },
+    'show-done': function (d) { ui.showDone[d.type] = !ui.showDone[d.type]; render(); },
+    toggle: function (d) {
+      var c = client(), it = findItem(c, d.type, d.id); if (!it) return;
+      it.done = !it.done;
+      if (d.type === 'topic') it.doneAt = it.done ? today() : '';
+      stamp(it); save(); render();
+    },
+    'folge-done': function () {
+      var c = client(); if (!c || !c.quota.to) return;
+      c.followUp = { to: c.quota.to, at: today() };
+      stamp(c); save(); render(); toast('Folgeantrag als gestellt vermerkt');
+    },
+    'folge-undo': function () {
+      var c = client(); if (!c) return;
+      delete c.followUp;
+      stamp(c); save(); render();
+    },
+    invoice: function () {
+      if (!canInvoice()) return;
+      openForm('invoice', null);
+      Promise.resolve().then(function () { return folderIO.rechnungNummer(); }).then(function (nr) {
+        var el = document.getElementById('f-nr');
+        if (el && !el.value && nr) el.value = nr;
+      }, function () { /* dann von Hand */ });
+    },
+    'invoice-open': function () { if (ui.reDone && ui.reDone.file && canInvoice()) folderIO.rechnungOeffnen(ui.reDone.file); },
+    tick: function (d) {
+      var it = findItem(client(), 'session', d.id); if (!it) return;
+      it.tick = !it.tick;
+      stamp(it); save(); render();
+    },
+    del: function (d, el) {
+      var f = ui.form, c = client();
+      if (f.type === 'client') { deleteClient(f.id); return; }
+      if (!armed(el, 'Wirklich löschen')) return;
+      else {
+        var key = { session: 'sessions', mood: 'moods', task: 'tasks', topic: 'topics' }[f.type];
+        c[key] = c[key].filter(function (x) { return x.id !== f.id; });
+        /* Vermerk, dass dieser Eintrag absichtlich weg ist. Sonst
+           holt ihn der Abgleich mit dem anderen Gerät wieder zurück. */
+        if (!Array.isArray(c.deleted)) c.deleted = [];
+        c.deleted.push({ id: f.id, at: new Date().toISOString() });
+      }
+      save(); closeForm(); toast('Gelöscht');
+    },
+    'example-remove': function () { S.clients = S.clients.filter(function (c) { return !c.example; }); save(); render(); },
+    'export': function () { doExport(); },
+    'import': function (d, el) { doImport(el); },
+    copy: function () {
+      var o = document.getElementById('bk-out'); if (!o) return;
+      var fallback = function () { o.focus(); o.select(); bkMsg('Der Inhalt ist markiert und kann kopiert werden.'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(o.value).then(function () { bkMsg('Inhalt kopiert.'); }, fallback);
+      else fallback();
+    },
+    lock: function () { if (cryptoKey) showLock(); },
+    'pin-set': function () { setPin(); },
+    'pin-remove': function (d, el) { removePin(el); },
+    forgot: function () { var f = document.getElementById('forgot'); if (f) f.hidden = false; },
+    'forgot-wipe': function (d, el) {
+      if (!armed(el, 'Wirklich alles löschen')) return;
+      try { localStorage.removeItem(KEY); } catch (e) { /* nothing stored */ }
+      cryptoKey = null; lockMeta = null; pendingLoad = false; S = normalize({ clients: [] }); save();
+      ui = { view: 'home', clientId: null, tab: 'sessions', form: null, scrollY: 0, showDone: {} };
+      hideLock(); go(); toast('Gerät geleert');
+    },
+    wipe: function (d, el) {
+      if (!armed(el, 'Wirklich alle Einträge löschen')) return;
+      S = normalize({ clients: [] }); save(); ui.view = 'home'; go(); toast('Gerät geleert');
+    }
+  };
+
+  /* ---------- drag a file: right archives it, left deletes it ---------- */
+  var sw = null, swipedAt = 0;
+  function swLimit(li) { return Math.min(140, li.offsetWidth * 0.35); }
+  function swEnd(commit) {
+    var s = sw; sw = null;
+    if (!s || !s.drag) return;
+    swipedAt = Date.now();
+    if (commit) { if (s.dir === 'left') deleteClient(s.li.dataset.id); else archiveClient(s.li.dataset.id); return; }
+    s.btn.classList.add('back'); s.btn.style.transform = '';
+    setTimeout(function () { s.btn.classList.remove('back'); s.li.classList.remove('drag', 'go', 'left', 'right'); }, 200);
+  }
+  document.addEventListener('pointerdown', function (e) {
+    if (e.button || ui.form || isLocked) return;
+    var btn = e.target.closest ? e.target.closest('.swipe > .client') : null;
+    if (!btn) return;
+    sw = { btn: btn, li: btn.parentNode, x: e.clientX, y: e.clientY, id: e.pointerId, drag: false, dx: 0 };
+  });
+  document.addEventListener('pointermove', function (e) {
+    if (!sw || e.pointerId !== sw.id) return;
+    var dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+    if (!sw.drag) {
+      if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; }
+      if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      sw.drag = true; sw.dir = dx > 0 ? 'right' : 'left'; sw.li.classList.add('drag', sw.dir);
+      try { sw.btn.setPointerCapture(sw.id); } catch (err) { /* capture is optional */ }
+    }
+    sw.dx = sw.dir === 'right' ? Math.max(0, dx) : Math.min(0, dx);
+    sw.btn.style.transform = 'translateX(' + sw.dx + 'px)';
+    sw.li.classList.toggle('go', Math.abs(sw.dx) >= swLimit(sw.li));
+  });
+  document.addEventListener('pointerup', function (e) { if (sw && e.pointerId === sw.id) swEnd(Math.abs(sw.dx) >= swLimit(sw.li)); });
+  document.addEventListener('pointercancel', function (e) { if (sw && e.pointerId === sw.id) swEnd(false); });
+
+  /* ------------------------------------------------------------------
+     Einhängen
+     Die Klicks hören nur im eigenen Behälter zu. Der Aktenschrank
+     benutzt data-act für eigene Schaltflächen, unter anderem mit den
+     gleichen Namen folge-done und folge-undo. Ohne diese Grenze würden
+     sich beide gegenseitig auslösen.
+     ------------------------------------------------------------------ */
+  function wire(host) {
+    host.addEventListener('click', function (e) {
+      if (Date.now() - swipedAt < 400) return;
+      var el = e.target.closest('[data-act]');
+      if (!el || !host.contains(el) || !actions[el.dataset.act]) return;
+      e.stopPropagation();
+      if (el.dataset.act !== 'unarchive') ui.undo = null;
+      if (el.dataset.act !== 'undelete') ui.undoDel = null;
+      actions[el.dataset.act](el.dataset, el);
+    });
+    host.addEventListener('submit', function (e) {
+      if (!host.contains(e.target)) return;
+      e.preventDefault(); e.stopPropagation();
+      if (e.target.id === 'lockform') doUnlock();
+      else if (e.target.id === 'form' && ui.form && !isLocked) submitForm(e.target);
+    });
+  }
+  function shell(host) {
+    host.classList.add('sbapp');
+    host.innerHTML = '<div id="sbApp"></div><div id="sbLock" hidden></div><div id="sbToast" class="toast" role="status" hidden></div>';
+    root = host;
+    app = host.querySelector('#sbApp');
+    lockEl = host.querySelector('#sbLock');
+    toastEl = host.querySelector('#sbToast');
+    if (!host.dataset.sbWired) { wire(host); host.dataset.sbWired = '1'; }
+  }
+  var FRESH = function () { return { view: 'home', clientId: null, tab: 'sessions', form: null, scrollY: 0, showDone: {} }; };
+
+  window.SBAPP = {
+    /* Taschen-Ansicht: Handy und Tablet, alle Akten im Browserspeicher */
+    tasche: function (host) {
+      MODE = 'tasche'; folderIO = null;
+      shell(host); host.classList.remove('inline');
+      var data = load();
+      isLocked = !data;
+      pendingLoad = !data;
+      S = data || normalize({ clients: [] });
+      ui = FRESH();
+      if (isLocked) showLock(); else render();
+    },
+    /* Ordner-Ansicht: der Aktenschrank zeigt eine Akte im Ordner Sitzungsbuch.
+       record ist ihr Stand, io schreibt ihn zurück. */
+    ordner: function (host, record, io, tab) {
+      MODE = 'ordner'; folderIO = io; isLocked = false; cryptoKey = null;
+      shell(host); host.classList.add('inline');
+      var one = normalize({ clients: [record] });
+      S = one;
+      ui = FRESH();
+      ui.view = 'client'; ui.clientId = one.clients[0].id;
+      ui.tab = tab || 'sessions';
+      render();
+      return one.clients[0];
+    },
+    leer: function () { return normalize({ clients: [{ id: '', name: '' }] }).clients[0]; },
+    pruefe: function (record) { return normalize({ clients: [record] }).clients[0]; },
+    /* für den Aktenschrank: Zusammenführen, Kennzahlen, Erinnerung */
+    merge: mergeClient,
+    neuesZaehlen: mergeCount,
+    kontingent: quotaStats,
+    euro: euroIn,
+    folge: folge,
+    folgeText: folgeText,
+    tab: function () { return ui.tab; },
+    /* Der Aktenschrank hat den Stand von außen geändert (gelöschte Rechnung).
+       Ein offenes Formular bleibt stehen; die Ansicht folgt beim Schließen. */
+    auffrischen: function (msg) {
+      if (!inFolder() || !app) return;
+      if (!ui.form) render();
+      if (msg) toast(msg);
+    },
+    lies: readBackup,
+    einarbeiten: mergeInto,
+    /* Sicherung aller Akten als PDF-Bytes, für den Rückweg zum Handy */
+    sicherung: function (clients) { return makePdf(buildBackup(clients)); }
+  };
+})();
+
+SBAPP.tasche(document.getElementById('sb'));
+</script>
+
+<script>if ('serviceWorker' in navigator && location.protocol === 'https:') { navigator.serviceWorker.register('./sw.js').catch(function(){}); }</script></body></html>

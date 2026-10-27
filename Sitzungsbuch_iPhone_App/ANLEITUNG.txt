@@ -1,0 +1,10 @@
+Sitzungsbuch für iPhone
+
+1. Alle Dateien aus diesem Ordner gemeinsam auf einem vertrauenswürdigen HTTPS-Webserver veröffentlichen. Nicht nur index.html hochladen.
+2. Die HTTPS-Adresse in Safari auf dem iPhone öffnen.
+3. In Safari: Teilen > Zum Home-Bildschirm > Hinzufügen.
+4. Die App einmal mit Internet starten und anschließend den Flugmodus testen.
+5. Zunächst nur mit der Beispielakte testen, bevor echte Klientendaten eingegeben werden.
+6. Unbedingt Zahlencode setzen und regelmäßig Sicherungen erstellen. Browserdaten löschen oder App entfernen kann Datenverlust bedeuten.
+
+Wichtig: Die App speichert Daten im lokalen Browserspeicher; ein HTTPS-Hosting der Programmdateien ist keine Garantie für DSGVO-Konformität. Hosting und Datenschutz vor Verwendung mit echten Klientendaten prüfen.
